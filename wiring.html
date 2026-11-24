@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1016">
+<title>Switchboard Wiring</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230d1016'/><path d='M36 8 18 36h12l-4 20 20-30H34z' fill='%23ffcf7a'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<style>
+  :root { --bg:#0d1016; --panel:rgba(20,24,32,.9); --line:rgba(255,255,255,.09); --text:#eef1f6; --muted:#9aa4b2; --accent:#ffcf7a; --danger:#ff6b5e; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font:14px/1.45 Inter,system-ui,sans-serif; overflow:hidden; }
+  #scene { position:fixed; inset:0 380px 0 0; touch-action:none; }
+  .labels { position:absolute; inset:0; pointer-events:none; }
+  .tag { font:600 11px Inter; color:#e9edf3; background:rgba(13,16,22,.78); border:1px solid var(--line); padding:3px 7px; border-radius:6px; white-space:nowrap; }
+  .tag.small { font:500 10px 'JetBrains Mono',monospace; padding:1px 5px; color:#cfd6df; }
+  .bar { position:fixed; top:0; left:0; right:380px; display:flex; gap:8px; align-items:center; padding:max(12px,env(safe-area-inset-top)) 16px 10px; pointer-events:none; flex-wrap:wrap; }
+  .bar > * { pointer-events:auto; }
+  .brand { font-weight:700; font-size:17px; margin-right:auto; }
+  .brand a { color:var(--muted); font-weight:500; font-size:13px; text-decoration:none; display:block; }
+  .pill { display:flex; background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:3px; }
+  .pill button, .btn { border:0; background:none; color:var(--muted); font:600 12px Inter; padding:7px 11px; border-radius:999px; cursor:pointer; }
+  .pill button.on { background:rgba(255,255,255,.1); color:var(--text); }
+  .btn { background:var(--panel); border:1px solid var(--line); color:var(--text); }
+  .btn.on { background:var(--accent); color:#1a1406; border-color:transparent; }
+
+  aside { position:fixed; top:0; right:0; bottom:0; width:380px; background:#11151c; border-left:1px solid var(--line); display:flex; flex-direction:column; }
+  .warn { margin:14px; padding:12px 14px; border-radius:12px; background:rgba(255,107,94,.1); border:1px solid rgba(255,107,94,.35); color:#ffd2cc; font-size:13px; }
+  .warn b { color:#fff; }
+  #steps { overflow:auto; padding:0 14px 14px; flex:1; }
+  .step { border:1px solid var(--line); border-radius:14px; margin-bottom:10px; overflow:hidden; }
+  .step > button { all:unset; display:flex; gap:10px; align-items:center; width:100%; padding:12px; cursor:pointer; box-sizing:border-box; }
+  .step .num { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#232935; font-weight:700; font-size:12px; flex:none; }
+  .step.active { border-color:rgba(255,207,122,.5); background:rgba(255,207,122,.05); }
+  .step.active .num { background:var(--accent); color:#1a1406; }
+  .step .t { font-weight:600; }
+  .step .kind { font-size:11px; color:var(--muted); }
+  .step .body { display:none; padding:0 12px 12px 48px; color:#cfd6df; }
+  .step.active .body { display:block; }
+  .wire { display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-top:1px dashed var(--line); cursor:pointer; }
+  .wire:hover .ft { color:#fff; }
+  .sw { width:22px; height:6px; border-radius:3px; margin-top:7px; flex:none; }
+  .ft { font:500 12px 'JetBrains Mono',monospace; color:#dfe5ec; }
+  .ft small { display:block; font:400 12px Inter; color:var(--muted); }
+  .nav { display:flex; gap:8px; padding:12px 14px max(12px,env(safe-area-inset-bottom)); border-top:1px solid var(--line); }
+  .nav button { flex:1; padding:11px; border-radius:12px; border:1px solid var(--line); background:#1a1f29; color:var(--text); font:600 13px Inter; cursor:pointer; }
+  .nav button.primary { background:var(--accent); color:#1a1406; border-color:transparent; }
+  #info { position:fixed; left:16px; bottom:16px; max-width:min(420px, calc(100% - 412px)); background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:none; backdrop-filter:blur(10px); }
+  #info.show { display:block; }
+  #info .ft { font-size:13px; }
+  .legend { display:flex; flex-wrap:wrap; gap:10px; padding:0 14px 10px; font-size:12px; color:var(--muted); }
+  .legend span { display:flex; align-items:center; gap:6px; }
+  .legend i { width:16px; height:5px; border-radius:3px; display:inline-block; }
+
+  @media (max-width: 820px) {
+    #scene { inset:0 0 46% 0; }
+    .bar { right:0; }
+    .brand a { display:none; }
+    aside { top:54%; width:auto; left:0; border-left:0; border-top:1px solid var(--line); border-radius:18px 18px 0 0; }
+    .warn { margin:10px 12px; padding:8px 10px; font-size:12px; }
+    #info { max-width:calc(100% - 32px); bottom:calc(46% + 12px); }
+    .legend { display:none; }
+    .tag { font-size:9px; padding:2px 5px; }
+    .tag.small { font-size:8px; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div class="bar">
+  <div class="brand">Switchboard wiring <a href="./">← Back to the house</a></div>
+  <div class="pill" role="group" aria-label="Show">
+    <button data-layer="all" class="on">All</button>
+    <button data-layer="mains">230V</button>
+    <button data-layer="lv">Low voltage</button>
+  </div>
+  <button class="btn on" id="explode" aria-pressed="true">Put plate back</button>
+</div>
+
+<aside>
+  <div class="warn"><b>230V can kill.</b> <span>A licensed electrician does every red, black, orange and green (230V) wire, with the MCB off and tested dead. You only touch the thin low-voltage wires, and only with the module unplugged from mains.</span></div>
+  <div class="legend">
+    <span><i style="background:#e0362c"></i>Live</span><span><i style="background:#ff8a1f"></i>Switched live</span>
+    <span><i style="background:#2a2a2a;outline:1px solid #666"></i>Neutral</span><span><i style="background:#3fbf4f"></i>Earth</span>
+    <span><i style="background:#ff5c8a"></i>5V</span><span><i style="background:#ffb74d"></i>3.3V</span><span><i style="background:#8d95a3"></i>GND</span>
+  </div>
+  <div id="steps"></div>
+  <div class="nav"><button id="prev">Back</button><button id="next" class="primary">Next step</button></div>
+</aside>
+<div id="info" role="status"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// Units: centimetres. x right, y up, z out of the wall towards you.
+// ------------------------------------------------------------------ scene
+const wrap = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+wrap.appendChild(renderer.domElement);
+const labels = new CSS2DRenderer(); labels.domElement.className = 'labels'; wrap.appendChild(labels.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0d1016);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 500);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.target.set(0, -3, 5);
+camera.position.set(16, 8, 48);
+scene.add(new THREE.HemisphereLight(0xe6eeff, 0x2a2420, 1.1));
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(20, 30, 40); scene.add(key);
+
+const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .7, ...o });
+function box(w, h, d, c, x, y, z, parent = scene, o) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c, o)); m.position.set(x, y, z); parent.add(m); return m; }
+function tag(text, x, y, z, parent = scene, small = false) {
+  const el = document.createElement('div'); el.className = 'tag' + (small ? ' small' : ''); el.textContent = text;
+  const o = new CSS2DObject(el); o.position.set(x, y, z); parent.add(o); return o;
+}
+
+// wall with the enclosure set into it
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(90, 60), M(0xe9e4da, { roughness: 1 }));
+wall.position.set(0, 0, 0); scene.add(wall);
+const enc = box(26, 20, 0.4, 0xf2f2ef, 0, 0, 0.2);              // back of the plastic box
+for (const [w, h, x, y] of [[26, .4, 0, 10], [26, .4, 0, -10], [.4, 20, -13, 0], [.4, 20, 13, 0]]) box(w, h, 7, 0xf7f7f4, x, y, 3.5, scene, { transparent: true, opacity: .35 });
+
+
+// ------------------------------------------------------------------ components + terminals
+const T = {};                       // terminal id -> () => Vector3 (world)
+const pinTags = {};                 // terminal id -> its small label, shown only when in use
+const fixed = (x, y, z) => () => new THREE.Vector3(x, y, z);
+let explode = 1, explodeGoal = 1;   // 0 = plate on the wall, 1 = pulled out and down so you can see behind it
+const plateZ = () => 8 + explode * 9;
+const plateY = () => -3.5 - explode * 13;
+
+// Wago-style terminal blocks: Live, Neutral, Earth
+function wago(id, label, color, x, y, n) {
+  box(n * 1.1 + .4, 1.6, 1.8, 0xdedede, x, y, 1.3);
+  for (let i = 0; i < n; i++) {
+    box(.8, .5, .2, color, x - (n - 1) * .55 + i * 1.1, y + .55, 2.25);
+    T[`${id}${i + 1}`] = fixed(x - (n - 1) * .55 + i * 1.1, y - .9, 1.6);
+  }
+  tag(label, x, y + 1.7, 2);
+}
+wago('L', 'Live bar', 0xe0362c, -9, 6.2, 4);
+wago('N', 'Neutral bar', 0x333333, -9, 2.2, 3);
+wago('E', 'Earth bar', 0x3fbf4f, -9, -1.8, 3);
+
+// cable from the DB comes in at the top left, loads leave at the top right
+T.feedL = fixed(-11.5, 10.5, 2.2); T.feedN = fixed(-10.5, 10.5, 2.2); T.feedE = fixed(-9.5, 10.5, 2.2);
+box(3.6, 1.4, 1.4, 0x9aa0a6, -10.5, 10.6, 2.2); tag('From DB (MCB)', -10.5, 12.4, 2.2);
+const loads = [['out1', 'To Light 1'], ['out2', 'To Light 2'], ['out3', 'To Light 3'], ['outFan', 'To Fan'], ['outE', 'Earth to fittings']];
+loads.forEach(([id], i) => { T[id] = fixed(5.5 + i * 1.6, 10.5, 2.2); });
+box(9, 1.4, 1.4, 0x9aa0a6, 8.7, 10.6, 2.2); tag('To lights & fan', 8.7, 12.4, 2.2);
+
+// fuse holder
+box(3.2, 1.2, 1.2, 0x1c1c1c, -4.2, 7.2, 1.2); box(1.6, .7, .7, 0xd6c7a1, -4.2, 7.2, 1.9);
+T.fuseIn = fixed(-5.6, 7.2, 1.6); T.fuseOut = fixed(-2.8, 7.2, 1.6);
+tag('Fuse 1A', -4.2, 8.4, 1.5);
+
+// HLK-5M05 (230V -> 5V, isolated)
+box(3.8, 2.3, 1.8, 0x111111, -3.6, 2.6, 1.3);
+tag('HLK-5M05 230V→5V', -3.6, 4.3, 1.5);
+T.hlkL = fixed(-5.3, 3.2, 2.2); T.hlkN = fixed(-5.3, 2.0, 2.2);
+T.hlk5 = fixed(-1.9, 3.2, 2.2); T.hlkG = fixed(-1.9, 2.0, 2.2);
+for (const [id, t] of [['hlkL', 'AC L'], ['hlkN', 'AC N'], ['hlk5', '+5V'], ['hlkG', '−V']]) pinTags[id] = tag(t, T[id]().x + (id.startsWith('hlkL') || id === 'hlkN' ? -1.2 : 1.2), T[id]().y, 2.2, scene, true);
+
+// ESP32 DevKit (38-pin)
+const esp = new THREE.Group(); esp.position.set(-1.5, -5.2, 1.0); scene.add(esp);
+box(5.6, 2.8, .2, 0x1a2a6c, 0, 0, 0, esp); box(1.8, 1.6, .35, 0x9aa3ad, 1.2, 0, .25, esp, { metalness: .8, roughness: .3 });
+tag('ESP32', -0.6, 2.2, 0.5, esp);
+const espPins = [['VIN', -2.4, -1.25], ['GND', -1.6, -1.25], ['G13', -0.8, -1.25], ['G14', 0, -1.25], ['G32', 0.8, -1.25], ['G4', 1.6, -1.25],
+                 ['3V3', -2.4, 1.25], ['G26', -1.6, 1.25], ['G27', -0.8, 1.25], ['G25', 0, 1.25], ['G33', 0.8, 1.25], ['GND2', 1.6, 1.25]];
+for (const [p, x, y] of espPins) {
+  box(.35, .35, .5, 0xd4af37, x, y, .3, esp, { metalness: .9, roughness: .3 });
+  T['esp' + p] = () => esp.localToWorld(new THREE.Vector3(x, y, .55));
+  pinTags['esp' + p] = tag(p.replace('GND2', 'GND'), x, y + (y > 0 ? .7 : -.7), .4, esp, true);
+}
+
+// 4-channel relay board
+const rb = new THREE.Group(); rb.position.set(6.2, 2.6, 1.0); scene.add(rb);
+box(8, 5.6, .2, 0x1d5fbf, 0, 0, 0, rb);
+tag('4-channel relay board', 0, -3.4, .4, rb);
+for (let i = 0; i < 4; i++) {
+  const x = -2.9 + i * 1.95;
+  box(1.5, 1.9, 1.6, 0x1e3f9a, x, .5, .9, rb);                  // relay can
+  box(1.6, .9, .9, 0x2b6be0, x, 2.3, .55, rb);                   // screw terminal
+  for (const [k, dx] of [['NO', -.5], ['COM', 0], ['NC', .5]]) {
+    T[`r${i + 1}${k}`] = () => rb.localToWorld(new THREE.Vector3(x + dx, 2.75, 1.05));
+    box(.28, .28, .1, 0xc0c4c8, x + dx, 2.75, 1.0, rb, { metalness: .8 });
+  }
+  tag(`K${i + 1}`, x, 3.5, 1.0, rb, true);
+  for (const [k, dx] of [['NO', -.5], ['COM', 0], ['NC', .5]]) pinTags[`r${i + 1}${k}`] = tag(k, x + dx, 2.75, 1.6, rb, true);
+}
+const rbPins = [['VCC', -3.4], ['IN1', -2.7], ['IN2', -2.0], ['IN3', -1.3], ['IN4', -0.6], ['JDVCC', 1.8], ['GND', 2.5]];
+for (const [p, x] of rbPins) {
+  box(.3, .3, .5, 0xd4af37, x, -2.3, .3, rb, { metalness: .9 });
+  T['rb' + p] = () => rb.localToWorld(new THREE.Vector3(x, -2.3, .55));
+  pinTags['rb' + p] = tag(p.replace('JDVCC', 'JD-VCC'), x, -1.6, .4, rb, true);
+}
+const jdNote = tag('remove JD-VCC jumper', 2.15, -0.9, .4, rb, true);
+
+// switch plate: 4 rockers (now low-voltage buttons) + fan regulator + 1 spare
+const plate = new THREE.Group(); scene.add(plate);
+box(18, 9.5, .6, 0xfafafa, 0, 0, 0, plate);
+const rockers = [[-5.5, 1.8], [-1.5, 1.8], [2.5, 1.8], [-5.5, -2.2], [-1.5, -2.2]];
+rockers.forEach(([x, y], i) => {
+  box(1.6, 2.2, .5, i === 4 ? 0xd9d9d9 : 0xffffff, x, y, .5, plate);
+  if (i < 4) {
+    T[`sw${i + 1}A`] = () => plate.localToWorld(new THREE.Vector3(x - .5, y, -.4));
+    T[`sw${i + 1}B`] = () => plate.localToWorld(new THREE.Vector3(x + .5, y, -.4));
+    tag(`Switch ${i + 1}`, x, y + 1.7, .7, plate, true);
+  } else tag('Spare: leave as is', x, y + 1.7, .7, plate, true);
+});
+const reg = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, .8, 32), M(0xffffff)); reg.rotation.x = Math.PI / 2; reg.position.set(3.5, -2.2, .5); plate.add(reg);
+tag('Fan regulator', 3.5, -0.6, .7, plate, true);
+T.regIn = () => plate.localToWorld(new THREE.Vector3(3.0, -2.2, -.4));
+T.regOut = () => plate.localToWorld(new THREE.Vector3(4.0, -2.2, -.4));
+tag('Your existing switch plate', 0, 5.6, 0, plate);
+
+// ------------------------------------------------------------------ wires
+const C = { live: 0xe0362c, sw: 0xff8a1f, neu: 0x2a2a2a, earth: 0x3fbf4f, v5: 0xff5c8a, v33: 0xffb74d, gnd: 0x8d95a3,
+  s1: 0x4fc3f7, s2: 0x9575cd, s3: 0xfff176, s4: 0xf06292, b1: 0x26c6da, b2: 0x81c784, b3: 0xba68c8, b4: 0x4db6ac };
+// [id, from, to, color, kind, lift(z lane), note]
+const WIRES = [
+  ['feedL', 'feedL', 'L1', C.live, 'mains', 3.2, 'Live from the MCB in the DB'],
+  ['feedN', 'feedN', 'N1', C.neu, 'mains', 3.0, 'Neutral from the DB (check the box has one!)'],
+  ['feedE', 'feedE', 'E1', C.earth, 'mains', 2.8, 'Earth from the DB'],
+  ['lFuse', 'L2', 'fuseIn', C.live, 'mains', 3.0, 'Live to the fuse'],
+  ['fuseHlk', 'fuseOut', 'hlkL', C.live, 'mains', 3.0, 'Fused live to the 5V module'],
+  ['nHlk', 'N2', 'hlkN', C.neu, 'mains', 2.6, 'Neutral to the 5V module'],
+  ['lCom', 'L3', 'r1COM', C.live, 'mains', 4.2, 'Live to relay 1 COM'],
+  ['com12', 'r1COM', 'r2COM', C.live, 'mains', 1.2, 'Loop COM 1 → COM 2'],
+  ['com23', 'r2COM', 'r3COM', C.live, 'mains', 1.2, 'Loop COM 2 → COM 3'],
+  ['com34', 'r3COM', 'r4COM', C.live, 'mains', 1.2, 'Loop COM 3 → COM 4'],
+  ['no1', 'r1NO', 'out1', C.sw, 'mains', 2.2, 'Relay 1 NO → wire that goes to Light 1'],
+  ['no2', 'r2NO', 'out2', C.sw, 'mains', 2.6, 'Relay 2 NO → Light 2'],
+  ['no3', 'r3NO', 'out3', C.sw, 'mains', 3.0, 'Relay 3 NO → Light 3'],
+  ['no4', 'r4NO', 'regIn', C.sw, 'mains', 5.0, 'Relay 4 NO → fan regulator input'],
+  ['regFan', 'regOut', 'outFan', C.sw, 'mains', 6.0, 'Fan regulator output → wire to the fan'],
+  ['earthOut', 'E2', 'outE', C.earth, 'mains', 5.6, 'Earth through to the fittings, never via a relay'],
+  ['p5Esp', 'hlk5', 'espVIN', C.v5, 'lv', 2.0, '+5V → ESP32 VIN'],
+  ['gEsp', 'hlkG', 'espGND', C.gnd, 'lv', 1.6, '−V (GND) → ESP32 GND'],
+  ['p5Jd', 'hlk5', 'rbJDVCC', C.v5, 'lv', 3.6, '+5V → relay board JD-VCC (powers the coils)'],
+  ['gRb', 'hlkG', 'rbGND', C.gnd, 'lv', 3.2, '−V → relay board GND (next to JD-VCC)'],
+  ['v33', 'esp3V3', 'rbVCC', C.v33, 'lv', 2.4, 'ESP32 3V3 → relay board VCC (input side)'],
+  ['in1', 'espG26', 'rbIN1', C.s1, 'lv', 1.4, 'GPIO 26 → IN1 (relay 1)'],
+  ['in2', 'espG27', 'rbIN2', C.s2, 'lv', 1.7, 'GPIO 27 → IN2 (relay 2)'],
+  ['in3', 'espG25', 'rbIN3', C.s3, 'lv', 2.0, 'GPIO 25 → IN3 (relay 3)'],
+  ['in4', 'espG33', 'rbIN4', C.s4, 'lv', 2.3, 'GPIO 33 → IN4 (relay 4)'],
+  ['sw1', 'sw1A', 'espG32', C.b1, 'lv', 4.0, 'Switch 1 → GPIO 32'],
+  ['sw2', 'sw2A', 'espG14', C.b2, 'lv', 4.4, 'Switch 2 → GPIO 14'],
+  ['sw3', 'sw3A', 'espG13', C.b3, 'lv', 4.8, 'Switch 3 → GPIO 13'],
+  ['sw4', 'sw4A', 'espG4', C.b4, 'lv', 5.2, 'Switch 4 → GPIO 4'],
+  ['swG12', 'sw1B', 'sw2B', C.gnd, 'lv', 1.0, 'Loop the other terminal of each switch: 1 → 2'],
+  ['swG23', 'sw2B', 'sw3B', C.gnd, 'lv', 1.0, '… 2 → 3'],
+  ['swG34', 'sw3B', 'sw4B', C.gnd, 'lv', 1.0, '… 3 → 4'],
+  ['swGnd', 'sw4B', 'espGND2', C.gnd, 'lv', 3.6, 'Switch common → ESP32 GND'],
+];
+const STEPS = [
+  { t: 'Power off and test dead', kind: 'Electrician', wires: [], body: 'Switch off the MCB that feeds this switchboard. The electronics go in a plastic box, never metal, or the Wi-Fi won\'t work. Test with a tester that it is dead. Check the box has a neutral wire. Many boxes in Pakistan don\'t; if there is none, one must be pulled from the DB first.' },
+  { t: 'Bring the feed to the terminal bars', kind: 'Electrician · 230V · 1.5 mm²', wires: ['feedL', 'feedN', 'feedE'], body: 'Live, neutral and earth from the DB each go into their own Wago bar. Everything else takes power from these bars.' },
+  { t: 'Power the 5V module through a fuse', kind: 'Electrician · 230V', wires: ['lFuse', 'fuseHlk', 'nHlk'], body: 'Live goes through a 1A fuse to AC L of the HLK-5M05. Neutral goes to AC N. The HLK is isolated, so its 5V side is safe once it\'s in.' },
+  { t: 'Live to the relay commons', kind: 'Electrician · 230V', wires: ['lCom', 'com12', 'com23', 'com34'], body: 'Live goes into COM of relay 1, then a short loop to COM 2, 3 and 4. Only live ever goes through a relay. Neutral never does.' },
+  { t: 'Relay outputs to the lights', kind: 'Electrician · 230V', wires: ['no1', 'no2', 'no3'], body: 'Take the wire that used to come off each wall switch to its light, and put it on that relay\'s NO terminal. NC stays empty, so the light is off when the board has no power.' },
+  { t: 'Fan through its regulator', kind: 'Electrician · 230V', wires: ['no4', 'regFan'], body: 'Relay 4 NO feeds the existing fan regulator, and the regulator output goes on to the fan. The relay turns the fan on and off; the knob still sets the speed.' },
+  { t: 'Earth straight through', kind: 'Electrician · 230V', wires: ['earthOut'], body: 'Earth goes from the earth bar to the fittings. It never goes through a relay or a switch.' },
+  { t: '5V to the ESP32 and relay coils', kind: 'You · low voltage · module unplugged', wires: ['p5Esp', 'gEsp', 'p5Jd', 'gRb'], body: 'Remove the JD-VCC jumper on the relay board. +5V goes to ESP32 VIN and to JD-VCC; −V goes to ESP32 GND and to the relay board GND.' },
+  { t: 'ESP32 drives the relays', kind: 'You · low voltage', wires: ['v33', 'in1', 'in2', 'in3', 'in4'], body: 'ESP32 3V3 goes to relay board VCC, so the 3.3V signals switch the relays cleanly. GPIO 26, 27, 25 and 33 go to IN1 to IN4. Solder or crimp these; don\'t use loose breadboard jumpers.' },
+  { t: 'Wall switches become buttons', kind: 'You · low voltage, after the electrician has taken 230V off them', wires: ['sw1', 'sw2', 'sw3', 'sw4', 'swG12', 'swG23', 'swG34', 'swGnd'], body: 'The old switches now carry no 230V at all. One terminal of each goes to its own GPIO (32, 14, 13, 4). The other terminals are looped together to GND. Flipping a switch toggles its light, so the house still works by hand and from the app.' },
+  { t: 'Test with a low-voltage LED first', kind: 'Everyone', wires: [], body: 'Before any 230V goes on: power the ESP32 from USB, put a 12V LED strip and adapter on relay 1 instead of a light, and check the app, the wall switch and a power cut all behave. Then the electrician connects 230V and checks the first board.' },
+];
+
+const wireObjs = new Map();
+const pickables = [];
+function wirePath(w) {
+  const a = T[w[1]](), b = T[w[2]](), lift = w[5];
+  const up = (p, dz) => new THREE.Vector3(p.x, p.y, p.z + dz);
+  const mid = a.clone().lerp(b, .5); mid.z = Math.max(a.z, b.z) + lift;
+  return new THREE.CatmullRomCurve3([a, up(a, lift * .55), mid, up(b, lift * .55), b], false, 'centripetal');
+}
+function buildWire(w) {
+  const r = w[4] === 'mains' ? .16 : .08;
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(wirePath(w), 48, r, 8), M(w[3], { roughness: .45, emissive: w[3], emissiveIntensity: 0 }));
+  mesh.userData.wire = w[0]; scene.add(mesh);
+  const hit = new THREE.Mesh(new THREE.TubeGeometry(wirePath(w), 24, .45, 6), new THREE.MeshBasicMaterial({ visible: false }));
+  hit.userData.wire = w[0]; scene.add(hit); pickables.push(hit);
+  wireObjs.set(w[0], { w, mesh, hit });
+}
+function rebuildWires() {
+  for (const { w, mesh, hit } of wireObjs.values()) {
+    if (![w[1], w[2]].some(t => /^(sw|reg)/.test(t))) continue; // only wires to the plate move
+    mesh.geometry.dispose(); mesh.geometry = new THREE.TubeGeometry(wirePath(w), 48, w[4] === 'mains' ? .16 : .08, 8);
+    hit.geometry.dispose(); hit.geometry = new THREE.TubeGeometry(wirePath(w), 24, .45, 6);
+  }
+}
+plate.position.set(-1, plateY(), plateZ());
+WIRES.forEach(buildWire);
+
+// ------------------------------------------------------------------ highlight + UI
+let layer = 'all', step = 0, picked = null;
+function refresh() {
+  const focus = picked ? [picked] : STEPS[step].wires;
+  for (const { w, mesh } of wireObjs.values()) {
+    const inLayer = layer === 'all' || w[4] === layer;
+    const lit = focus.includes(w[0]);
+    mesh.visible = inLayer;
+    mesh.material.transparent = true;
+    mesh.material.opacity = !focus.length || lit ? 1 : .12;
+    mesh.material.emissiveIntensity = lit ? .55 : 0;
+  }
+  const used = new Set(WIRES.filter(w => focus.includes(w[0])).flatMap(w => [w[1], w[2]]));
+  for (const [id, o] of Object.entries(pinTags)) o.visible = used.has(id);
+  jdNote.visible = used.has('rbJDVCC');
+  document.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('active', i === step));
+  document.getElementById('prev').disabled = step === 0;
+  document.getElementById('next').textContent = step === STEPS.length - 1 ? 'Start again' : 'Next step';
+}
+const hex = c => '#' + c.toString(16).padStart(6, '0');
+const pretty = id => id.replace(/^esp/, 'ESP32 ').replace(/^rb/, 'Relay board ').replace(/^r(\d)(NO|COM|NC)$/, 'Relay $1 $2')
+  .replace(/^sw(\d)([AB])$/, 'Switch $1 terminal $2').replace(/^hlk5$/, 'HLK +5V').replace(/^hlkG$/, 'HLK −V').replace(/^hlkL$/, 'HLK AC L').replace(/^hlkN$/, 'HLK AC N')
+  .replace(/^([LNE])(\d)$/, (_, b, n) => ({ L: 'Live', N: 'Neutral', E: 'Earth' })[b] + ' bar ' + n).replace(/^feed([LNE])$/, 'DB feed $1')
+  .replace(/^out(\d)$/, 'Light $1 wire').replace('outFan', 'Fan wire').replace('outE', 'Earth to fittings').replace('regIn', 'Regulator in').replace('regOut', 'Regulator out')
+  .replace('fuseIn', 'Fuse in').replace('fuseOut', 'Fuse out').replace('JDVCC', 'JD-VCC').replace('GND2', 'GND');
+const stepsEl = document.getElementById('steps');
+STEPS.forEach((s, i) => {
+  const el = document.createElement('div'); el.className = 'step';
+  el.innerHTML = `<button><span class="num">${i + 1}</span><span><div class="t"></div><div class="kind"></div></span></button><div class="body"><p></p></div>`;
+  el.querySelector('.t').textContent = s.t; el.querySelector('.kind').textContent = s.kind; el.querySelector('p').textContent = s.body;
+  for (const id of s.wires) {
+    const w = WIRES.find(x => x[0] === id);
+    const row = document.createElement('div'); row.className = 'wire';
+    row.innerHTML = `<i class="sw" style="background:${hex(w[3])}"></i><div class="ft"></div>`;
+    row.querySelector('.ft').innerHTML = `${pretty(w[1])} → ${pretty(w[2])}<small></small>`;
+    row.querySelector('small').textContent = w[6];
+    row.onclick = () => showWire(id);
+    el.querySelector('.body').appendChild(row);
+  }
+  el.querySelector('button').onclick = () => { step = i; picked = null; hideInfo(); refresh(); el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+  stepsEl.appendChild(el);
+});
+document.getElementById('next').onclick = () => { step = (step + 1) % STEPS.length; picked = null; hideInfo(); refresh(); document.querySelectorAll('.step')[step].scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+document.getElementById('prev').onclick = () => { step = Math.max(0, step - 1); picked = null; hideInfo(); refresh(); };
+document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => {
+  layer = b.dataset.layer; document.querySelectorAll('[data-layer]').forEach(x => x.classList.toggle('on', x === b)); refresh();
+});
+const exBtn = document.getElementById('explode');
+exBtn.onclick = () => { explodeGoal = explodeGoal ? 0 : 1; exBtn.classList.toggle('on', !!explodeGoal); exBtn.setAttribute('aria-pressed', !!explodeGoal); exBtn.textContent = explodeGoal ? 'Put plate back' : 'Pull plate out'; };
+
+const info = document.getElementById('info');
+function showWire(id) {
+  const w = WIRES.find(x => x[0] === id); picked = id;
+  info.innerHTML = `<div class="ft"></div>`;
+  info.querySelector('.ft').innerHTML = `<i class="sw" style="display:inline-block;background:${hex(w[3])};margin-right:8px"></i>${pretty(w[1])} → ${pretty(w[2])}<small></small>`;
+  info.querySelector('small').textContent = w[6] + (w[4] === 'mains' ? ' · 230V, electrician only, 1.5 mm²' : ' · low voltage, 22 AWG, soldered or crimped');
+  info.classList.add('show'); refresh();
+}
+function hideInfo() { info.classList.remove('show'); }
+
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down;
+renderer.domElement.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  ptr.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects(pickables.filter(h => wireObjs.get(h.userData.wire).mesh.visible))[0];
+  if (hit) showWire(hit.object.userData.wire); else { picked = null; hideInfo(); refresh(); }
+});
+
+function resize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h); labels.setSize(w, h); camera.aspect = w / h;
+  camera.position.copy(controls.target).add(new THREE.Vector3(16, 11, 43).setLength(camera.aspect < 1 ? 54 : 48)); camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), .05);
+  if (Math.abs(explode - explodeGoal) > .002) { explode += (explodeGoal - explode) * Math.min(1, dt * 5); plate.position.z = plateZ(); plate.position.y = plateY(); plate.updateMatrixWorld(true); rebuildWires(); }
+  controls.update(); renderer.render(scene, camera); labels.render(scene, camera);
+});
+refresh();
+window.__wiring = { showWire, WIRES };
+</script>
+</body>
+</html>
