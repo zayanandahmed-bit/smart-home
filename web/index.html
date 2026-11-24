@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1016">
+<title>Home</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230d1016'/><path d='M14 32 32 16l18 16v16H38V36H26v12H14z' fill='%23ffd9a0'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm"
+} }
+</script>
+<style>
+  :root {
+    --bg: #0d1016; --panel: rgba(20,24,32,.86); --line: rgba(255,255,255,.09);
+    --text: #eef1f6; --muted: #9aa4b2; --warm: #ffd9a0; --accent: #ffcf7a; --on: #ffcf7a;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 Inter, system-ui, sans-serif; overflow: hidden; }
+  #scene { position: fixed; inset: 0; touch-action: none; }
+  #scene canvas { display: block; }
+  .labels { position: absolute; inset: 0; pointer-events: none; }
+  .room-label {
+    pointer-events: auto; border: 1px solid var(--line); background: rgba(13,16,22,.72); color: var(--text);
+    font: 600 12px Inter, sans-serif; padding: 5px 10px; border-radius: 999px; cursor: pointer; backdrop-filter: blur(6px);
+    white-space: nowrap; transition: background .15s;
+  }
+  .room-label:hover { background: rgba(40,46,58,.9); }
+
+  .bar { position: fixed; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px;
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px; pointer-events: none; }
+  .bar > * { pointer-events: auto; }
+  .brand { font-weight: 700; letter-spacing: -.01em; font-size: 17px; }
+  .brand small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+  .grow { flex: 1; }
+  .pill { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px; backdrop-filter: blur(10px); }
+  .pill button, .icon-btn { border: 0; background: none; color: var(--muted); font: 600 13px Inter, sans-serif; padding: 8px 12px; border-radius: 999px; cursor: pointer; }
+  .pill button.on { background: rgba(255,255,255,.1); color: var(--text); }
+  .icon-btn { background: var(--panel); border: 1px solid var(--line); color: var(--text); width: 40px; height: 40px; padding: 0; font-size: 18px; backdrop-filter: blur(10px); }
+  #count { font: 600 12px Inter; color: var(--accent); background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; border-radius: 999px; backdrop-filter: blur(10px); }
+
+  .hint { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+    color: var(--muted); font-size: 13px; background: var(--panel); border: 1px solid var(--line); padding: 8px 14px; border-radius: 999px; backdrop-filter: blur(10px); white-space: nowrap; }
+
+  #panel { position: fixed; right: 16px; top: 76px; width: 340px; max-height: calc(100% - 100px); overflow: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); backdrop-filter: blur(16px);
+    padding: 14px; transform: translateX(380px); transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+  #panel.open { transform: none; }
+  .panel-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .panel-head h2 { margin: 0; font-size: 18px; flex: 1; }
+  .ghost { border: 1px solid var(--line); background: none; color: var(--text); font: 600 13px Inter; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 11px 8px; border-radius: 12px; cursor: pointer; position: relative; }
+  .row:hover { background: rgba(255,255,255,.04); }
+  .row .txt { flex: 1; display: flex; flex-direction: column; }
+  .row small { color: var(--muted); font-size: 12px; }
+  .row input { position: absolute; opacity: 0; pointer-events: none; }
+  .sw { width: 46px; height: 28px; border-radius: 999px; background: #2b313c; position: relative; transition: background .2s; flex: none; }
+  .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #c9ced6; transition: transform .2s, background .2s; }
+  .row.on .sw { background: var(--on); }
+  .row.on .sw::after { transform: translateX(18px); background: #1a1406; }
+  .row input:focus-visible + .sw { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ico { width: 34px; height: 34px; border-radius: 10px; background: #232935; flex: none; display: grid; place-items: center; }
+  .ico::before { font-size: 16px; }
+  .ico.light::before { content: '💡'; } .ico.lamp::before { content: '🛋'; } .ico.fan::before { content: '🌀'; }
+  .ico.strip::before { content: '✨'; } .ico.exhaust::before { content: '💨'; }
+  .row.on .ico { background: rgba(255,207,122,.18); }
+
+  #auth { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(1200px 600px at 50% 0%, rgba(255,207,122,.14), transparent), rgba(8,10,14,.78); backdrop-filter: blur(6px); z-index: 10; padding: 16px; }
+  #auth[hidden] { display: none; }
+  .card { width: 100%; max-width: 380px; background: #141922; border: 1px solid var(--line); border-radius: 22px; padding: 26px; }
+  .card h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: -.02em; }
+  .card p { margin: 0 0 18px; color: var(--muted); }
+  .card label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+  .card input { width: 100%; background: #0d1016; color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: 15px Inter; }
+  .card input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .primary { width: 100%; margin-top: 18px; border: 0; background: var(--accent); color: #1a1406; font: 700 15px Inter; padding: 13px; border-radius: 12px; cursor: pointer; }
+  .primary:disabled { opacity: .6; }
+  .links { display: flex; justify-content: space-between; margin-top: 14px; }
+  .links button { background: none; border: 0; color: var(--muted); font: 500 13px Inter; cursor: pointer; padding: 4px 0; }
+  .links button:hover { color: var(--text); }
+  #auth-msg { min-height: 20px; margin-top: 12px; color: #ffb4a8; font-size: 13px; }
+
+  #toast { position: fixed; left: 50%; bottom: 70px; transform: translate(-50%, 20px); opacity: 0; background: #2a1d1d; border: 1px solid #5a3333; padding: 10px 14px; border-radius: 12px; transition: .25s; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #who { color: var(--muted); font-size: 12px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  @media (max-width: 720px) {
+    .brand small, #who { display: none; }
+    .bar { flex-wrap: wrap; }
+    #panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 52%; border-radius: 22px 22px 0 0; transform: translateY(105%); padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+    #panel.open { transform: none; }
+    .hint { bottom: max(14px, env(safe-area-inset-bottom)); font-size: 12px; }
+    #panel.open ~ .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div id="scene"></div>
+
+  <div class="bar">
+    <div class="brand">Home<small>Tap a room to go in · tap a light to switch it</small></div>
+    <div class="grow"></div>
+    <span id="count">All off</span>
+    <div class="pill" role="group" aria-label="Floor">
+      <button data-floor="0" class="on">Ground</button>
+      <button data-floor="1">First</button>
+    </div>
+    <button id="mode" class="icon-btn" aria-label="Switch to day view">☀︎</button>
+    <span id="who"></span>
+    <button id="signout" class="ghost" hidden>Sign out</button>
+  </div>
+
+  <aside id="panel" aria-live="polite">
+    <div class="panel-head">
+      <button id="back" class="ghost" aria-label="Back to whole house">← House</button>
+      <h2 id="panel-title"></h2>
+      <button id="panel-alloff" class="ghost">All off</button>
+    </div>
+    <div id="panel-list"></div>
+  </aside>
+
+  <div class="hint">Drag to turn · pinch or scroll to zoom</div>
+  <div id="toast" role="status"></div>
+
+  <div id="auth">
+    <form class="card" id="auth-form" data-mode="login">
+      <h1>Your home</h1>
+      <p>Log in to control your lights and fans.</p>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" minlength="8" required>
+      <button class="primary" id="auth-go">Log in</button>
+      <div id="auth-msg" role="alert"></div>
+      <div class="links">
+        <button type="button" id="auth-switch">New here? Create an account</button>
+        <button type="button" id="demo">Just look around</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

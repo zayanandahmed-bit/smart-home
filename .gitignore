@@ -1,0 +1,5 @@
+# The house video and its frames stay on this Mac only.
+house/
+firmware/.pio/
+firmware/src/secrets.h
+.DS_Store
