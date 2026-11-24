@@ -3,10 +3,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
-import { ROOMS, FLOORS, FLOOR_HEIGHT } from './house.js';
+import { ROOMS, FLOORS, FLOOR_HEIGHT, BOUNDS } from './house.js';
 
 // ---------------------------------------------------------------- state
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'smarthome' } });
+const CX = (BOUNDS.x0 + BOUNDS.x1) / 2, CZ = (BOUNDS.z0 + BOUNDS.z1) / 2; // house centre, world space
 const ALL_FIXTURES = ROOMS.flatMap(r => r.fixtures.map(f => ({ ...f, room: r.id })));
 const fixtureState = new Map(ALL_FIXTURES.map(f => [f.id, false]));
 const fixtureLink = new Map();      // id -> {device_id, n}
@@ -50,19 +51,18 @@ sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 60 });
 scene.add(sun);
-sun.target.position.set(5, 0, 8);
+sun.target.position.set(CX, 0, CZ);
 scene.add(sun.target);
 
 // ground
 const ground = new THREE.Mesh(new THREE.CircleGeometry(40, 64), new THREE.MeshStandardMaterial({ color: 0x1b1e22, roughness: 1 }));
-ground.rotation.x = -Math.PI / 2; ground.position.set(5, -0.06, 8); ground.receiveShadow = true;
+ground.rotation.x = -Math.PI / 2; ground.position.set(CX, -0.07, CZ); ground.receiveShadow = true;
 scene.add(ground);
 
-const HOUSE_CENTER = new THREE.Vector3(5, 0, 8);
 // Mirror x so the house reads as seen from the street (three.js looks down +z with +x to the left).
-const HOUSE_W = 10;
-const wx = x => HOUSE_W - x;
-const floorGroups = FLOORS.map(f => { const g = new THREE.Group(); g.position.set(HOUSE_W, f.id * FLOOR_HEIGHT, 0); g.scale.x = -1; scene.add(g); return g; });
+const MIRROR = BOUNDS.x0 + BOUNDS.x1;
+const wx = x => MIRROR - x;
+const floorGroups = FLOORS.map(f => { const g = new THREE.Group(); g.position.set(MIRROR, f.id * FLOOR_HEIGHT, 0); g.scale.x = -1; scene.add(g); return g; });
 
 // ---------------------------------------------------------------- materials & helpers
 const matCache = new Map();
@@ -101,8 +101,9 @@ for (const room of ROOMS) {
   const [x0, z0, x1, z1] = room.rect;
   const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
 
-  const fl = box(w - 0.02, 0.1, d - 0.02, room.floorColor, cx, -0.05, cz, g);
+  const fl = box(w - 0.02, 0.1, d - 0.02, room.floorColor, cx, room.inner ? -0.045 : -0.05, cz, g);
   fl.userData.room = room.id; roomFloors.push(fl);
+  if (!room.open) {
 
   const wc = room.wallColor || '#f4f1ea';
   box(w, WALL_H, WALL_T, wc, cx, WALL_H / 2, z0 + WALL_T / 2, g);
@@ -112,6 +113,7 @@ for (const room of ROOMS) {
   // wall caps, a thin dark line that makes the cutaway read clearly
   for (const [bw, bd, bx, bz] of [[w, WALL_T, cx, z0 + WALL_T / 2], [w, WALL_T, cx, z1 - WALL_T / 2], [WALL_T, d, x0 + WALL_T / 2, cz], [WALL_T, d, x1 - WALL_T / 2, cz]])
     box(bw + 0.001, 0.02, bd + 0.001, '#2a2622', bx, WALL_H + 0.01, bz, g);
+  }
 
   for (const f of room.furniture) buildFurniture(f, g);
   for (const fx of room.fixtures) buildFixture({ ...fx, room: room.id }, g);
@@ -132,7 +134,7 @@ function buildFurniture(f, g) {
       const [bw, bd] = f.rot ? [d, w] : [w, d];
       box(bw, 0.35, bd, '#5b4636', x, 0.18, z, g);
       box(bw - 0.08, 0.18, bd - 0.08, f.color, x, 0.44, z, g);
-      if (f.rot) box(0.12, 1.0, bd + 0.1, f.head, x - bw / 2 - 0.02, 0.5, z, g);
+      if (f.rot) box(0.12, 1.0, bd + 0.1, f.head, x + (f.rot === 2 ? 1 : -1) * (bw / 2 + 0.02), 0.5, z, g);
       else box(bw + 0.1, 1.0, 0.12, f.head, x, 0.5, z + bd / 2 + 0.02, g);
       break;
     }
@@ -161,6 +163,15 @@ function buildFurniture(f, g) {
       break;
     }
     case 'desk': box(w, 0.75, d, f.color, x, 0.375, z, g); break;
+    case 'car': {
+      box(w, 0.7, d, f.color, x, 0.5, z, g, { metalness: .6, roughness: .35 });
+      box(w * 0.86, 0.5, d * 0.5, '#2b3440', x, 1.1, z - d * 0.04, g, { metalness: .3, roughness: .2 });
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const wh = cyl(0.33, 0.33, 0.22, '#111', x + sx * w / 2, 0.33, z + sz * d * 0.32, g, 20);
+        wh.rotation.z = Math.PI / 2;
+      }
+      break;
+    }
     case 'counter': box(w, 0.9, d, f.color, x, 0.45, z, g); box(w + 0.02, 0.04, d + 0.02, '#141414', x, 0.92, z, g); break;
     case 'fridge': box(w, 1.8, d, '#f3f3f3', x, 0.9, z, g); break;
     case 'wardrobe': box(w, 2.2, d, '#f6f6f4', x, 1.1, z, g); break;
@@ -309,8 +320,8 @@ function fitDist(span) {
 const VIEW_DIR = new THREE.Vector3(0.35, 1.25, -1).normalize();
 function overviewPose() {
   const y = activeFloor * FLOOR_HEIGHT;
-  const target = new THREE.Vector3(5, y, 8);
-  return [target.clone().addScaledVector(VIEW_DIR, fitDist(camera.aspect < 1 ? 11 : 14)), target];
+  const target = new THREE.Vector3(CX, y, CZ);
+  return [target.clone().addScaledVector(VIEW_DIR, fitDist(camera.aspect < 1 ? 12.5 : 15)), target];
 }
 function focusRoom(id) {
   const room = ROOMS.find(r => r.id === id);
