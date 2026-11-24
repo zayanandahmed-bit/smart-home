@@ -113,7 +113,7 @@ const labels = new CSS2DRenderer(); labels.domElement.className = 'labels'; wrap
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0d1016);
 const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 500);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; controls.target.set(0, -3, 5);
+controls.enableDamping = true; controls.target.set(0, -4.5, 5);
 camera.position.set(16, 8, 48);
 scene.add(new THREE.HemisphereLight(0xe6eeff, 0x2a2420, 1.1));
 const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(20, 30, 40); scene.add(key);
@@ -156,8 +156,8 @@ wago('E', 'Earth bar', 0x3fbf4f, -9, -1.8, 3);
 // cable from the DB comes in at the top left, loads leave at the top right
 T.feedL = fixed(-11.5, 10.5, 2.2); T.feedN = fixed(-10.5, 10.5, 2.2); T.feedE = fixed(-9.5, 10.5, 2.2);
 box(3.6, 1.4, 1.4, 0x9aa0a6, -10.5, 10.6, 2.2); tag('From DB (MCB)', -10.5, 12.4, 2.2);
-const loads = [['out1', 'To Light 1'], ['out2', 'To Light 2'], ['out3', 'To Light 3'], ['outFan', 'To Fan'], ['outE', 'Earth to fittings']];
-loads.forEach(([id], i) => { T[id] = fixed(5.5 + i * 1.6, 10.5, 2.2); });
+const loads = [['out1', 'To Light 1'], ['out2', 'To Light 2'], ['out3', 'To Light 3'], ['out4', 'To Light 4'], ['outFan', 'To Fan'], ['outE', 'Earth to fittings']];
+loads.forEach(([id], i) => { T[id] = fixed(4.9 + i * 1.3, 10.5, 2.2); });
 box(9, 1.4, 1.4, 0x9aa0a6, 8.7, 10.6, 2.2); tag('To lights & fan', 8.7, 12.4, 2.2);
 
 // fuse holder
@@ -173,56 +173,57 @@ T.hlk5 = fixed(-1.9, 3.2, 2.2); T.hlkG = fixed(-1.9, 2.0, 2.2);
 for (const [id, t] of [['hlkL', 'AC L'], ['hlkN', 'AC N'], ['hlk5', '+5V'], ['hlkG', '−V']]) pinTags[id] = tag(t, T[id]().x + (id.startsWith('hlkL') || id === 'hlkN' ? -1.2 : 1.2), T[id]().y, 2.2, scene, true);
 
 // ESP32 DevKit (38-pin)
-const esp = new THREE.Group(); esp.position.set(-1.5, -5.2, 1.0); scene.add(esp);
-box(5.6, 2.8, .2, 0x1a2a6c, 0, 0, 0, esp); box(1.8, 1.6, .35, 0x9aa3ad, 1.2, 0, .25, esp, { metalness: .8, roughness: .3 });
+const esp = new THREE.Group(); esp.position.set(-4.2, -5.6, 1.0); scene.add(esp);
+box(6.2, 2.8, .2, 0x1a2a6c, 0, 0, 0, esp); box(1.8, 1.6, .35, 0x9aa3ad, 1.2, 0, .25, esp, { metalness: .8, roughness: .3 });
 tag('ESP32', -0.6, 2.2, 0.5, esp);
-const espPins = [['VIN', -2.4, -1.25], ['GND', -1.6, -1.25], ['G13', -0.8, -1.25], ['G14', 0, -1.25], ['G32', 0.8, -1.25], ['G4', 1.6, -1.25],
-                 ['3V3', -2.4, 1.25], ['G26', -1.6, 1.25], ['G27', -0.8, 1.25], ['G25', 0, 1.25], ['G33', 0.8, 1.25], ['GND2', 1.6, 1.25]];
+const espPins = [['VIN', -2.4, -1.25], ['GND', -1.6, -1.25], ['G13', -0.8, -1.25], ['G14', 0, -1.25], ['G32', 0.8, -1.25], ['G4', 1.6, -1.25], ['G16', 2.4, -1.25],
+                 ['3V3', -2.4, 1.25], ['G26', -1.6, 1.25], ['G27', -0.8, 1.25], ['G25', 0, 1.25], ['G33', 0.8, 1.25], ['G23', 1.6, 1.25], ['GND2', 2.4, 1.25]];
 for (const [p, x, y] of espPins) {
   box(.35, .35, .5, 0xd4af37, x, y, .3, esp, { metalness: .9, roughness: .3 });
   T['esp' + p] = () => esp.localToWorld(new THREE.Vector3(x, y, .55));
   pinTags['esp' + p] = tag(p.replace('GND2', 'GND'), x, y + (y > 0 ? .7 : -.7), .4, esp, true);
 }
 
-// 4-channel relay board
-const rb = new THREE.Group(); rb.position.set(6.2, 2.6, 1.0); scene.add(rb);
-box(8, 5.6, .2, 0x1d5fbf, 0, 0, 0, rb);
-tag('4-channel relay board', 0, -3.4, .4, rb);
-for (let i = 0; i < 4; i++) {
-  const x = -2.9 + i * 1.95;
-  box(1.5, 1.9, 1.6, 0x1e3f9a, x, .5, .9, rb);                  // relay can
-  box(1.6, .9, .9, 0x2b6be0, x, 2.3, .55, rb);                   // screw terminal
-  for (const [k, dx] of [['NO', -.5], ['COM', 0], ['NC', .5]]) {
-    T[`r${i + 1}${k}`] = () => rb.localToWorld(new THREE.Vector3(x + dx, 2.75, 1.05));
-    box(.28, .28, .1, 0xc0c4c8, x + dx, 2.75, 1.0, rb, { metalness: .8 });
+// two 4-channel relay boards: A = the 4 lights, B = the fan (channels 2-4 spare)
+function relayBoard(prefix, label, chOffset, x0, y0, used) {
+  const rb = new THREE.Group(); rb.position.set(x0, y0, 1.0); scene.add(rb);
+  box(8, 5.6, .2, 0x1d5fbf, 0, 0, 0, rb);
+  tag(label, 0, -3.4, .4, rb);
+  for (let i = 0; i < 4; i++) {
+    const x = -2.9 + i * 1.95, ch = chOffset + i + 1, live = i < used;
+    box(1.5, 1.9, 1.6, live ? 0x1e3f9a : 0x2d3d63, x, .5, .9, rb);
+    box(1.6, .9, .9, 0x2b6be0, x, 2.3, .55, rb);
+    for (const [k, dx] of [['NO', -.5], ['COM', 0], ['NC', .5]]) {
+      T[`r${ch}${k}`] = () => rb.localToWorld(new THREE.Vector3(x + dx, 2.75, 1.05));
+      box(.28, .28, .1, 0xc0c4c8, x + dx, 2.75, 1.0, rb, { metalness: .8 });
+      pinTags[`r${ch}${k}`] = tag(k, x + dx, 2.75, 1.6, rb, true);
+    }
+    tag(live ? `K${i + 1}` : 'spare', x, 3.5, 1.0, rb, true);
   }
-  tag(`K${i + 1}`, x, 3.5, 1.0, rb, true);
-  for (const [k, dx] of [['NO', -.5], ['COM', 0], ['NC', .5]]) pinTags[`r${i + 1}${k}`] = tag(k, x + dx, 2.75, 1.6, rb, true);
+  for (const [p, x] of [['VCC', -3.4], ['IN1', -2.7], ['IN2', -2.0], ['IN3', -1.3], ['IN4', -0.6], ['JDVCC', 1.8], ['GND', 2.5]]) {
+    box(.3, .3, .5, 0xd4af37, x, -2.3, .3, rb, { metalness: .9 });
+    T[prefix + p] = () => rb.localToWorld(new THREE.Vector3(x, -2.3, .55));
+    pinTags[prefix + p] = tag(p.replace('JDVCC', 'JD-VCC'), x, -1.6, .4, rb, true);
+  }
+  return tag('remove JD-VCC jumper', 2.15, -0.9, .4, rb, true);
 }
-const rbPins = [['VCC', -3.4], ['IN1', -2.7], ['IN2', -2.0], ['IN3', -1.3], ['IN4', -0.6], ['JDVCC', 1.8], ['GND', 2.5]];
-for (const [p, x] of rbPins) {
-  box(.3, .3, .5, 0xd4af37, x, -2.3, .3, rb, { metalness: .9 });
-  T['rb' + p] = () => rb.localToWorld(new THREE.Vector3(x, -2.3, .55));
-  pinTags['rb' + p] = tag(p.replace('JDVCC', 'JD-VCC'), x, -1.6, .4, rb, true);
-}
-const jdNote = tag('remove JD-VCC jumper', 2.15, -0.9, .4, rb, true);
+const jdNote = relayBoard('rb', 'Board A: lights 1-4', 0, 6.2, 3.6, 4);
+const jdNote2 = relayBoard('rc', 'Board B: fan', 4, 6.2, -4.6, 1);
 
 // switch plate: 4 rockers (now low-voltage buttons) + fan regulator + 1 spare
 const plate = new THREE.Group(); scene.add(plate);
 box(18, 9.5, .6, 0xfafafa, 0, 0, 0, plate);
-const rockers = [[-5.5, 1.8], [-1.5, 1.8], [2.5, 1.8], [-5.5, -2.2], [-1.5, -2.2]];
+const rockers = [[-6, 1.8], [-2, 1.8], [2, 1.8], [6, 1.8], [-6, -2.2]];
 rockers.forEach(([x, y], i) => {
-  box(1.6, 2.2, .5, i === 4 ? 0xd9d9d9 : 0xffffff, x, y, .5, plate);
-  if (i < 4) {
-    T[`sw${i + 1}A`] = () => plate.localToWorld(new THREE.Vector3(x - .5, y, -.4));
-    T[`sw${i + 1}B`] = () => plate.localToWorld(new THREE.Vector3(x + .5, y, -.4));
-    tag(`Switch ${i + 1}`, x, y + 1.7, .7, plate, true);
-  } else tag('Spare: leave as is', x, y + 1.7, .7, plate, true);
+  box(1.6, 2.2, .5, 0xffffff, x, y, .5, plate);
+  T[`sw${i + 1}A`] = () => plate.localToWorld(new THREE.Vector3(x - .5, y, -.4));
+  T[`sw${i + 1}B`] = () => plate.localToWorld(new THREE.Vector3(x + .5, y, -.4));
+  tag(i < 4 ? `Light ${i + 1}` : 'Fan', x, y + 1.7, .7, plate, true);
 });
-const reg = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, .8, 32), M(0xffffff)); reg.rotation.x = Math.PI / 2; reg.position.set(3.5, -2.2, .5); plate.add(reg);
-tag('Fan regulator', 3.5, -0.6, .7, plate, true);
-T.regIn = () => plate.localToWorld(new THREE.Vector3(3.0, -2.2, -.4));
-T.regOut = () => plate.localToWorld(new THREE.Vector3(4.0, -2.2, -.4));
+const reg = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, .8, 32), M(0xffffff)); reg.rotation.x = Math.PI / 2; reg.position.set(1, -2.2, .5); plate.add(reg);
+tag('Fan speed knob', 1, -0.6, .7, plate, true);
+T.regIn = () => plate.localToWorld(new THREE.Vector3(0.5, -2.2, -.4));
+T.regOut = () => plate.localToWorld(new THREE.Vector3(1.5, -2.2, -.4));
 tag('Your existing switch plate', 0, 5.6, 0, plate);
 
 // ------------------------------------------------------------------ wires
@@ -236,46 +237,54 @@ const WIRES = [
   ['lFuse', 'L2', 'fuseIn', C.live, 'mains', 3.0, 'Live to the fuse'],
   ['fuseHlk', 'fuseOut', 'hlkL', C.live, 'mains', 3.0, 'Fused live to the 5V module'],
   ['nHlk', 'N2', 'hlkN', C.neu, 'mains', 2.6, 'Neutral to the 5V module'],
-  ['lCom', 'L3', 'r1COM', C.live, 'mains', 4.2, 'Live to relay 1 COM'],
+  ['lCom', 'L3', 'r1COM', C.live, 'mains', 4.2, 'Live to board A relay 1 COM'],
   ['com12', 'r1COM', 'r2COM', C.live, 'mains', 1.2, 'Loop COM 1 → COM 2'],
   ['com23', 'r2COM', 'r3COM', C.live, 'mains', 1.2, 'Loop COM 2 → COM 3'],
   ['com34', 'r3COM', 'r4COM', C.live, 'mains', 1.2, 'Loop COM 3 → COM 4'],
+  ['comFan', 'L4', 'r5COM', C.live, 'mains', 4.8, 'Live to board B relay 1 COM (the fan relay)'],
   ['no1', 'r1NO', 'out1', C.sw, 'mains', 2.2, 'Relay 1 NO → wire that goes to Light 1'],
   ['no2', 'r2NO', 'out2', C.sw, 'mains', 2.6, 'Relay 2 NO → Light 2'],
   ['no3', 'r3NO', 'out3', C.sw, 'mains', 3.0, 'Relay 3 NO → Light 3'],
-  ['no4', 'r4NO', 'regIn', C.sw, 'mains', 5.0, 'Relay 4 NO → fan regulator input'],
-  ['regFan', 'regOut', 'outFan', C.sw, 'mains', 6.0, 'Fan regulator output → wire to the fan'],
+  ['no4', 'r4NO', 'out4', C.sw, 'mains', 3.4, 'Relay 4 NO → Light 4'],
+  ['noFan', 'r5NO', 'regIn', C.sw, 'mains', 5.0, 'Board B relay 1 NO → fan speed knob input'],
+  ['regFan', 'regOut', 'outFan', C.sw, 'mains', 6.4, 'Fan speed knob output → wire to the fan'],
   ['earthOut', 'E2', 'outE', C.earth, 'mains', 5.6, 'Earth through to the fittings, never via a relay'],
   ['p5Esp', 'hlk5', 'espVIN', C.v5, 'lv', 2.0, '+5V → ESP32 VIN'],
   ['gEsp', 'hlkG', 'espGND', C.gnd, 'lv', 1.6, '−V (GND) → ESP32 GND'],
-  ['p5Jd', 'hlk5', 'rbJDVCC', C.v5, 'lv', 3.6, '+5V → relay board JD-VCC (powers the coils)'],
-  ['gRb', 'hlkG', 'rbGND', C.gnd, 'lv', 3.2, '−V → relay board GND (next to JD-VCC)'],
-  ['v33', 'esp3V3', 'rbVCC', C.v33, 'lv', 2.4, 'ESP32 3V3 → relay board VCC (input side)'],
-  ['in1', 'espG26', 'rbIN1', C.s1, 'lv', 1.4, 'GPIO 26 → IN1 (relay 1)'],
-  ['in2', 'espG27', 'rbIN2', C.s2, 'lv', 1.7, 'GPIO 27 → IN2 (relay 2)'],
-  ['in3', 'espG25', 'rbIN3', C.s3, 'lv', 2.0, 'GPIO 25 → IN3 (relay 3)'],
-  ['in4', 'espG33', 'rbIN4', C.s4, 'lv', 2.3, 'GPIO 33 → IN4 (relay 4)'],
-  ['sw1', 'sw1A', 'espG32', C.b1, 'lv', 4.0, 'Switch 1 → GPIO 32'],
-  ['sw2', 'sw2A', 'espG14', C.b2, 'lv', 4.4, 'Switch 2 → GPIO 14'],
-  ['sw3', 'sw3A', 'espG13', C.b3, 'lv', 4.8, 'Switch 3 → GPIO 13'],
-  ['sw4', 'sw4A', 'espG4', C.b4, 'lv', 5.2, 'Switch 4 → GPIO 4'],
+  ['p5Jd', 'hlk5', 'rbJDVCC', C.v5, 'lv', 3.6, '+5V → board A JD-VCC (powers the coils)'],
+  ['gRb', 'hlkG', 'rbGND', C.gnd, 'lv', 3.2, '−V → board A GND (next to JD-VCC)'],
+  ['p5Jd2', 'rbJDVCC', 'rcJDVCC', C.v5, 'lv', 1.6, 'Loop +5V on to board B JD-VCC'],
+  ['gRb2', 'rbGND', 'rcGND', C.gnd, 'lv', 1.3, 'Loop GND on to board B GND'],
+  ['v33', 'esp3V3', 'rbVCC', C.v33, 'lv', 2.4, 'ESP32 3V3 → board A VCC (input side)'],
+  ['v33b', 'rbVCC', 'rcVCC', C.v33, 'lv', 1.8, 'Loop 3V3 on to board B VCC'],
+  ['in1', 'espG26', 'rbIN1', C.s1, 'lv', 1.4, 'GPIO 26 → board A IN1 (Light 1)'],
+  ['in2', 'espG27', 'rbIN2', C.s2, 'lv', 1.7, 'GPIO 27 → board A IN2 (Light 2)'],
+  ['in3', 'espG25', 'rbIN3', C.s3, 'lv', 2.0, 'GPIO 25 → board A IN3 (Light 3)'],
+  ['in4', 'espG33', 'rbIN4', C.s4, 'lv', 2.3, 'GPIO 33 → board A IN4 (Light 4)'],
+  ['in5', 'espG23', 'rcIN1', 0x7986cb, 'lv', 1.4, 'GPIO 23 → board B IN1 (Fan)'],
+  ['sw1', 'sw1A', 'espG32', C.b1, 'lv', 4.0, 'Light 1 switch → GPIO 32'],
+  ['sw2', 'sw2A', 'espG14', C.b2, 'lv', 4.4, 'Light 2 switch → GPIO 14'],
+  ['sw3', 'sw3A', 'espG13', C.b3, 'lv', 4.8, 'Light 3 switch → GPIO 13'],
+  ['sw4', 'sw4A', 'espG4', C.b4, 'lv', 5.2, 'Light 4 switch → GPIO 4'],
+  ['sw5', 'sw5A', 'espG16', 0xa1887f, 'lv', 5.6, 'Fan switch → GPIO 16'],
   ['swG12', 'sw1B', 'sw2B', C.gnd, 'lv', 1.0, 'Loop the other terminal of each switch: 1 → 2'],
   ['swG23', 'sw2B', 'sw3B', C.gnd, 'lv', 1.0, '… 2 → 3'],
   ['swG34', 'sw3B', 'sw4B', C.gnd, 'lv', 1.0, '… 3 → 4'],
-  ['swGnd', 'sw4B', 'espGND2', C.gnd, 'lv', 3.6, 'Switch common → ESP32 GND'],
+  ['swG45', 'sw4B', 'sw5B', C.gnd, 'lv', 1.0, '… 4 → fan switch'],
+  ['swGnd', 'sw5B', 'espGND2', C.gnd, 'lv', 3.6, 'Switch common → ESP32 GND'],
 ];
 const STEPS = [
   { t: 'Power off and test dead', kind: 'Electrician', wires: [], body: 'Switch off the MCB that feeds this switchboard. The electronics go in a plastic box, never metal, or the Wi-Fi won\'t work. Test with a tester that it is dead. Check the box has a neutral wire. Many boxes in Pakistan don\'t; if there is none, one must be pulled from the DB first.' },
   { t: 'Bring the feed to the terminal bars', kind: 'Electrician · 230V · 1.5 mm²', wires: ['feedL', 'feedN', 'feedE'], body: 'Live, neutral and earth from the DB each go into their own Wago bar. Everything else takes power from these bars.' },
   { t: 'Power the 5V module through a fuse', kind: 'Electrician · 230V', wires: ['lFuse', 'fuseHlk', 'nHlk'], body: 'Live goes through a 1A fuse to AC L of the HLK-5M05. Neutral goes to AC N. The HLK is isolated, so its 5V side is safe once it\'s in.' },
-  { t: 'Live to the relay commons', kind: 'Electrician · 230V', wires: ['lCom', 'com12', 'com23', 'com34'], body: 'Live goes into COM of relay 1, then a short loop to COM 2, 3 and 4. Only live ever goes through a relay. Neutral never does.' },
-  { t: 'Relay outputs to the lights', kind: 'Electrician · 230V', wires: ['no1', 'no2', 'no3'], body: 'Take the wire that used to come off each wall switch to its light, and put it on that relay\'s NO terminal. NC stays empty, so the light is off when the board has no power.' },
-  { t: 'Fan through its regulator', kind: 'Electrician · 230V', wires: ['no4', 'regFan'], body: 'Relay 4 NO feeds the existing fan regulator, and the regulator output goes on to the fan. The relay turns the fan on and off; the knob still sets the speed.' },
+  { t: 'Live to the relay commons', kind: 'Electrician · 230V', wires: ['lCom', 'com12', 'com23', 'com34', 'comFan'], body: 'Live goes into COM of board A relay 1, then a short loop to COM 2, 3 and 4. A separate live from the bar goes to COM of board B relay 1, the fan relay. Only live ever goes through a relay. Neutral never does.' },
+  { t: 'Relay outputs to the lights', kind: 'Electrician · 230V', wires: ['no1', 'no2', 'no3', 'no4'], body: 'Take the wire that used to come off each of the 4 light switches, and put it on that relay\'s NO terminal on board A. NC stays empty, so the light is off when the board has no power.' },
+  { t: 'Fan through its regulator', kind: 'Electrician · 230V', wires: ['noFan', 'regFan'], body: 'Board B relay 1 NO feeds the existing fan speed knob, and the knob output goes on to the fan. The relay turns the fan on and off; the knob still sets the speed by hand.' },
   { t: 'Earth straight through', kind: 'Electrician · 230V', wires: ['earthOut'], body: 'Earth goes from the earth bar to the fittings. It never goes through a relay or a switch.' },
-  { t: '5V to the ESP32 and relay coils', kind: 'You · low voltage · module unplugged', wires: ['p5Esp', 'gEsp', 'p5Jd', 'gRb'], body: 'Remove the JD-VCC jumper on the relay board. +5V goes to ESP32 VIN and to JD-VCC; −V goes to ESP32 GND and to the relay board GND.' },
-  { t: 'ESP32 drives the relays', kind: 'You · low voltage', wires: ['v33', 'in1', 'in2', 'in3', 'in4'], body: 'ESP32 3V3 goes to relay board VCC, so the 3.3V signals switch the relays cleanly. GPIO 26, 27, 25 and 33 go to IN1 to IN4. Solder or crimp these; don\'t use loose breadboard jumpers.' },
-  { t: 'Wall switches become buttons', kind: 'You · low voltage, after the electrician has taken 230V off them', wires: ['sw1', 'sw2', 'sw3', 'sw4', 'swG12', 'swG23', 'swG34', 'swGnd'], body: 'The old switches now carry no 230V at all. One terminal of each goes to its own GPIO (32, 14, 13, 4). The other terminals are looped together to GND. Flipping a switch toggles its light, so the house still works by hand and from the app.' },
-  { t: 'Test with a low-voltage LED first', kind: 'Everyone', wires: [], body: 'Before any 230V goes on: power the ESP32 from USB, put a 12V LED strip and adapter on relay 1 instead of a light, and check the app, the wall switch and a power cut all behave. Then the electrician connects 230V and checks the first board.' },
+  { t: '5V to the ESP32 and relay coils', kind: 'You · low voltage · module unplugged', wires: ['p5Esp', 'gEsp', 'p5Jd', 'gRb', 'p5Jd2', 'gRb2'], body: 'Remove the JD-VCC jumper on both relay boards. +5V goes to ESP32 VIN and to JD-VCC on board A, then loops on to board B. −V does the same to GND.' },
+  { t: 'ESP32 drives the relays', kind: 'You · low voltage', wires: ['v33', 'v33b', 'in1', 'in2', 'in3', 'in4', 'in5'], body: 'ESP32 3V3 goes to VCC on both boards, so the 3.3V signals switch the relays cleanly. GPIO 26, 27, 25 and 33 go to board A IN1 to IN4 (the lights). GPIO 23 goes to board B IN1 (the fan). Solder or crimp these; don\'t use loose breadboard jumpers.' },
+  { t: 'Wall switches become buttons', kind: 'You · low voltage, after the electrician has taken 230V off them', wires: ['sw1', 'sw2', 'sw3', 'sw4', 'sw5', 'swG12', 'swG23', 'swG34', 'swG45', 'swGnd'], body: 'The 5 old switches now carry no 230V at all. One terminal of each goes to its own GPIO: lights 32, 14, 13, 4 and the fan 16. The other terminals are looped together to GND. Flipping a switch toggles its light, so the house still works by hand and from the app.' },
+  { t: 'Test with a low-voltage LED first', kind: 'Everyone', wires: [], body: 'Before any 230V goes on: power the ESP32 from USB, put a 12V LED strip and adapter on a relay instead of a light, and check the app, the wall switch and a power cut all behave. Then the electrician connects 230V and checks the first board.' },
 ];
 
 const wireObjs = new Map();
@@ -318,16 +327,16 @@ function refresh() {
   }
   const used = new Set(WIRES.filter(w => focus.includes(w[0])).flatMap(w => [w[1], w[2]]));
   for (const [id, o] of Object.entries(pinTags)) o.visible = used.has(id);
-  jdNote.visible = used.has('rbJDVCC');
+  jdNote.visible = used.has('rbJDVCC'); jdNote2.visible = used.has('rcJDVCC');
   document.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('active', i === step));
   document.getElementById('prev').disabled = step === 0;
   document.getElementById('next').textContent = step === STEPS.length - 1 ? 'Start again' : 'Next step';
 }
 const hex = c => '#' + c.toString(16).padStart(6, '0');
-const pretty = id => id.replace(/^esp/, 'ESP32 ').replace(/^rb/, 'Relay board ').replace(/^r(\d)(NO|COM|NC)$/, 'Relay $1 $2')
+const pretty = id => id.replace(/^esp/, 'ESP32 ').replace(/^rb/, 'Board A ').replace(/^rc/, 'Board B ').replace(/^r5(NO|COM|NC)$/, 'Board B relay 1 $1').replace(/^r(\d)(NO|COM|NC)$/, 'Board A relay $1 $2')
   .replace(/^sw(\d)([AB])$/, 'Switch $1 terminal $2').replace(/^hlk5$/, 'HLK +5V').replace(/^hlkG$/, 'HLK −V').replace(/^hlkL$/, 'HLK AC L').replace(/^hlkN$/, 'HLK AC N')
   .replace(/^([LNE])(\d)$/, (_, b, n) => ({ L: 'Live', N: 'Neutral', E: 'Earth' })[b] + ' bar ' + n).replace(/^feed([LNE])$/, 'DB feed $1')
-  .replace(/^out(\d)$/, 'Light $1 wire').replace('outFan', 'Fan wire').replace('outE', 'Earth to fittings').replace('regIn', 'Regulator in').replace('regOut', 'Regulator out')
+  .replace(/^out(\d)$/, 'Light $1 wire').replace('regIn', 'Fan knob in').replace('regOut', 'Fan knob out').replace('outFan', 'Fan wire').replace('outE', 'Earth to fittings').replace('regIn', 'Regulator in').replace('regOut', 'Regulator out')
   .replace('fuseIn', 'Fuse in').replace('fuseOut', 'Fuse out').replace('JDVCC', 'JD-VCC').replace('GND2', 'GND');
 const stepsEl = document.getElementById('steps');
 STEPS.forEach((s, i) => {
@@ -378,7 +387,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 function resize() {
   const w = wrap.clientWidth, h = wrap.clientHeight;
   renderer.setSize(w, h); labels.setSize(w, h); camera.aspect = w / h;
-  camera.position.copy(controls.target).add(new THREE.Vector3(16, 11, 43).setLength(camera.aspect < 1 ? 54 : 48)); camera.updateProjectionMatrix();
+  camera.position.copy(controls.target).add(new THREE.Vector3(16, 11, 43).setLength(camera.aspect < 1 ? 60 : 56)); camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
 const clock = new THREE.Clock();
