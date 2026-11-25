@@ -129,7 +129,7 @@ function tag(text, x, y, z, parent = scene, small = false) {
 const wall = new THREE.Mesh(new THREE.PlaneGeometry(90, 60), M(0xe9e4da, { roughness: 1 }));
 wall.position.set(0, 0, 0); scene.add(wall);
 const enc = box(26, 20, 0.4, 0xf2f2ef, 0, 0, 0.2);              // back of the plastic extension box
-tag('Plastic extension box (screws over your switch hole)', 0, -11.2, 3);
+tag('Plastic extension box (screws over your switch hole). Cut vent slots top + bottom', 0, -11.2, 3);
 for (const [w, h, x, y] of [[26, .4, 0, 10], [26, .4, 0, -10], [.4, 20, -13, 0], [.4, 20, 13, 0]]) box(w, h, 7, 0xf7f7f4, x, y, 3.5, scene, { transparent: true, opacity: .35 });
 
 
@@ -168,10 +168,10 @@ tag('Fuse 1A', -4.2, 8.4, 1.5);
 
 // HLK-5M05 (230V -> 5V, isolated)
 box(3.8, 2.3, 1.8, 0x111111, -3.6, 2.6, 1.3);
-tag('Power supply HLK-5M05: 230V in → 5V for ESP32 + relays', -3.6, 4.3, 1.5);
+tag('5V LED power supply (2A): 230V in → 5V for ESP32 + relays', -3.6, 4.3, 1.5);
 T.hlkL = fixed(-5.3, 3.2, 2.2); T.hlkN = fixed(-5.3, 2.0, 2.2);
 T.hlk5 = fixed(-1.9, 3.2, 2.2); T.hlkG = fixed(-1.9, 2.0, 2.2);
-for (const [id, t] of [['hlkL', 'AC L'], ['hlkN', 'AC N'], ['hlk5', '+5V'], ['hlkG', '−V']]) pinTags[id] = tag(t, T[id]().x + (id.startsWith('hlkL') || id === 'hlkN' ? -1.2 : 1.2), T[id]().y, 2.2, scene, true);
+for (const [id, t] of [['hlkL', 'L'], ['hlkN', 'N'], ['hlk5', '+V'], ['hlkG', '−V']]) pinTags[id] = tag(t, T[id]().x + (id.startsWith('hlkL') || id === 'hlkN' ? -1.2 : 1.2), T[id]().y, 2.2, scene, true);
 
 // ESP32 DevKit (38-pin)
 const esp = new THREE.Group(); esp.position.set(-4.2, -5.6, 1.0); scene.add(esp);
@@ -236,8 +236,8 @@ const WIRES = [
   ['feedN', 'feedN', 'N1', C.neu, 'mains', 3.0, 'Neutral already in the switch box (check there is one!)'],
   ['feedE', 'feedE', 'E1', C.earth, 'mains', 2.8, 'Earth already in the switch box'],
   ['lFuse', 'L2', 'fuseIn', C.live, 'mains', 3.0, 'Live to the fuse'],
-  ['fuseHlk', 'fuseOut', 'hlkL', C.live, 'mains', 3.0, 'Fused live to the 5V module'],
-  ['nHlk', 'N2', 'hlkN', C.neu, 'mains', 2.6, 'Neutral to the 5V module'],
+  ['fuseHlk', 'fuseOut', 'hlkL', C.live, 'mains', 3.0, 'Fused live to the 5V supply (L terminal)'],
+  ['nHlk', 'N2', 'hlkN', C.neu, 'mains', 2.6, 'Neutral to the 5V supply (N terminal)'],
   ['lCom', 'L3', 'r1COM', C.live, 'mains', 4.2, 'Live to board A relay 1 COM'],
   ['com12', 'r1COM', 'r2COM', C.live, 'mains', 1.2, 'Loop COM 1 → COM 2'],
   ['com23', 'r2COM', 'r3COM', C.live, 'mains', 1.2, 'Loop COM 2 → COM 3'],
@@ -250,7 +250,7 @@ const WIRES = [
   ['noFan', 'r5NO', 'regIn', C.sw, 'mains', 5.0, 'Board B relay 1 NO → fan speed knob input'],
   ['regFan', 'regOut', 'outFan', C.sw, 'mains', 6.4, 'Fan speed knob output → wire to the fan'],
   ['earthOut', 'E2', 'outE', C.earth, 'mains', 5.6, 'Earth through to the fittings, never via a relay'],
-  ['p5Esp', 'hlk5', 'espVIN', C.v5, 'lv', 2.0, '+5V → ESP32 VIN'],
+  ['p5Esp', 'hlk5', 'espVIN', C.v5, 'lv', 2.0, '+V (5V) → ESP32 VIN'],
   ['gEsp', 'hlkG', 'espGND', C.gnd, 'lv', 1.6, '−V (GND) → ESP32 GND'],
   ['p5Jd', 'hlk5', 'rbJDVCC', C.v5, 'lv', 3.6, '+5V → board A JD-VCC (powers the coils)'],
   ['gRb', 'hlkG', 'rbGND', C.gnd, 'lv', 3.2, '−V → board A GND (next to JD-VCC)'],
@@ -277,7 +277,7 @@ const WIRES = [
 const STEPS = [
   { t: 'Breaker off, plate off', kind: 'Electrician', wires: [], body: 'Nobody wires anything at the DB. Just flip OFF the breaker for this room there, then test the switch box is dead. Take the switch plate off and check there is a neutral (usually black) in the box. No neutral = stop: an electrician has to run one first.' },
   { t: 'Fit the extension box', kind: 'Electrician · 230V · 1.5 mm²', wires: ['feedL', 'feedN', 'feedE'], body: 'A plastic extension box (about 20 x 12 x 5 cm, never metal or the Wi-Fi dies) screws over the existing switch hole. Your same switch plate screws onto its front. Inside it: the HLK 5V module, the ESP32 and the two relay boards. The live, neutral and earth already in the switch box each go into their own Wago bar inside it.' },
-  { t: 'Power the 5V module through a fuse', kind: 'Electrician · 230V', wires: ['lFuse', 'fuseHlk', 'nHlk'], body: 'Live goes through a 1A fuse to AC L of the HLK-5M05. Neutral goes to AC N. The HLK is isolated, so its 5V side is safe once it\'s in.' },
+  { t: 'Power the 5V supply through a fuse', kind: 'Electrician · 230V', wires: ['lFuse', 'fuseHlk', 'nHlk'], body: 'Buy a plain indoor 5V 2A (or 3A) LED power supply, the metal-cased one with screw terminals. Live goes through a 1A fuse to its L terminal. Neutral goes to its N terminal. Its +V and −V side is then low voltage. Leave a few cm of gap around it, and cut vent slots in the box so it stays cool.' },
   { t: 'Live to the relay commons', kind: 'Electrician · 230V', wires: ['lCom', 'com12', 'com23', 'com34', 'comFan'], body: 'Live goes into COM of board A relay 1, then a short loop to COM 2, 3 and 4. A separate live from the bar goes to COM of board B relay 1, the fan relay. Only live ever goes through a relay. Neutral never does.' },
   { t: 'Relay outputs to the lights', kind: 'Electrician · 230V', wires: ['no1', 'no2', 'no3', 'no4'], body: 'Take the wire that used to come off each of the 4 light switches, and put it on that relay\'s NO terminal on board A. NC stays empty, so the light is off when the board has no power.' },
   { t: 'Fan through its regulator', kind: 'Electrician · 230V', wires: ['noFan', 'regFan'], body: 'Board B relay 1 NO feeds the existing fan speed knob, and the knob output goes on to the fan. The relay turns the fan on and off; the knob still sets the speed by hand.' },
@@ -335,7 +335,7 @@ function refresh() {
 }
 const hex = c => '#' + c.toString(16).padStart(6, '0');
 const pretty = id => id.replace(/^esp/, 'ESP32 ').replace(/^rb/, 'Board A ').replace(/^rc/, 'Board B ').replace(/^r5(NO|COM|NC)$/, 'Board B relay 1 $1').replace(/^r(\d)(NO|COM|NC)$/, 'Board A relay $1 $2')
-  .replace(/^sw(\d)([AB])$/, 'Switch $1 terminal $2').replace(/^hlk5$/, 'HLK +5V').replace(/^hlkG$/, 'HLK −V').replace(/^hlkL$/, 'HLK AC L').replace(/^hlkN$/, 'HLK AC N')
+  .replace(/^sw(\d)([AB])$/, 'Switch $1 terminal $2').replace(/^hlk5$/, '5V supply +V').replace(/^hlkG$/, '5V supply −V').replace(/^hlkL$/, '5V supply L').replace(/^hlkN$/, '5V supply N')
   .replace(/^([LNE])(\d)$/, (_, b, n) => ({ L: 'Live', N: 'Neutral', E: 'Earth' })[b] + ' bar ' + n).replace(/^feed([LNE])$/, (_, b) => 'Switch box ' + ({ L: 'live', N: 'neutral', E: 'earth' })[b])
   .replace(/^out(\d)$/, 'Light $1 wire').replace('regIn', 'Fan knob in').replace('regOut', 'Fan knob out').replace('outFan', 'Fan wire').replace('outE', 'Earth to fittings').replace('regIn', 'Regulator in').replace('regOut', 'Regulator out')
   .replace('fuseIn', 'Fuse in').replace('fuseOut', 'Fuse out').replace('JDVCC', 'JD-VCC').replace('GND2', 'GND');
