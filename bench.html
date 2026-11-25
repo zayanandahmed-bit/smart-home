@@ -29,6 +29,8 @@
   .btn.on { background:var(--accent); color:#1a1406; border-color:transparent; }
   aside { position:fixed; top:0; right:0; bottom:0; width:380px; background:#11151c; border-left:1px solid var(--line); display:flex; flex-direction:column; }
   .note { margin:14px 14px 8px; padding:10px 12px; border-radius:12px; background:rgba(255,207,122,.1); border:1px solid rgba(255,207,122,.3); color:#ffe9b8; font-size:13px; }
+  .key { display:flex; flex-wrap:wrap; gap:6px 12px; padding:0 14px 10px; font-size:12px; color:var(--muted); }
+  .key span { display:flex; align-items:center; gap:6px; } .key i { width:16px; height:5px; border-radius:3px; display:inline-block; outline:1px solid rgba(255,255,255,.2); }
   .parts { display:flex; gap:8px; padding:0 14px 10px; }
   .part { flex:1; min-width:0; text-decoration:none; color:var(--text); border:1px solid var(--line); border-radius:12px; padding:6px; background:#161b24; text-align:center; }
   .part span { display:block; font-size:11px; margin-top:0; line-height:1.25; color:var(--muted); }
@@ -57,7 +59,7 @@
     .brand a { display:none; }
     aside { top:54%; width:auto; left:0; border-left:0; border-top:1px solid var(--line); border-radius:18px 18px 0 0; }
     .note { margin:10px 12px 6px; padding:8px 10px; font-size:12px; }
-    .parts { display:none; }
+    .parts { display:none; } .key { display:none; }
     #info { max-width:calc(100% - 32px); bottom:calc(46% + 12px); }
     .tag { font-size:9px; padding:2px 5px; } .tag.small { font-size:8px; }
   }
@@ -67,11 +69,12 @@
 <div id="scene"></div>
 <div class="bar">
   <div class="brand">Bench test wiring <a href="./wiring.html">← Switchboard wiring</a></div>
-  <button class="btn" id="try" aria-pressed="false">Try it: relay on</button>
+  <button class="btn" id="try" aria-pressed="false">Try it: switch ON</button>
 </div>
 
 <aside>
-  <div class="note"><b>No mains in this test.</b> The charger plugs into a normal wall socket at home and only 5V reaches the wires below. Switch the relay and a small 5V LED lights up.</div>
+  <div class="note"><b>Safe test.</b> Only a phone charger. No house power touches these wires. When you switch the relay, a little light turns on.</div>
+  <div class="key"><span><i style="background:#e0362c"></i>Red = power +</span><span><i style="background:#2b2b2b"></i>Black = ground −</span><span><i style="background:#2196f3"></i>Blue = on/off signal</span><span><i style="background:#ff9800"></i>Orange = signal power</span><span><i style="background:#f5b700"></i>Yellow = to the light</span></div>
   <div class="parts" id="parts"></div>
   <div id="steps"></div>
   <div class="nav"><button id="prev">Back</button><button id="next" class="primary">Next step</button></div>
@@ -144,9 +147,9 @@ for (const [n, c, z] of stubs) {
   if (n === 'green' || n === 'white') box(.5, .3, .35, 0xf2d13a, -10.7, .5, z);   // tape over the unused data wires
   else T['cut' + n[0].toUpperCase() + n.slice(1)] = () => e.clone();
 }
-tag('Cut here (the phone end of a spare cable)', -13.5, 1.0, 16.2);
-tag('red = +5V', -10.2, 1.3, 11.8, scene, true); tag('black = GND', -10.2, 1.3, 12.6, scene, true);
-tag('green + white: tape up, unused', -10.2, 1.3, 14.4, scene, true);
+tag('Cut the cable here', -13.5, 1.0, 16.2);
+tag('red = power (+)', -10.2, 1.3, 11.8, scene, true); tag('black = ground (−)', -10.2, 1.3, 12.6, scene, true);
+tag('green + white: not used, tape them', -10.2, 1.3, 14.4, scene, true);
 
 // ---- ESP32 38-pin (black PCB, gold module, micro-USB, yellow headers)
 const esp = part(-2, 0, 8);
@@ -168,7 +171,7 @@ R.forEach((l, i) => {
   if (i === 0) pin(esp, 'espGND2', 1.14, .4, zAt(i), 'GND');
   else box(.09, .3, .09, 0xb9a24a, 1.14, .55, zAt(i), esp);
 });
-tag('ESP32', 0, 1.4, -.3, esp);
+tag('ESP32 (the brain)', 0, 1.4, -.3, esp);
 tag('USB: leave empty while powered here', 0, 1.2, 3.4, esp, true).visible = false;
 
 // ---- 8-channel relay board (blue PCB, blue relays, blue 3-screw terminals, like the Digilog photo)
@@ -195,19 +198,19 @@ box(2.7, .25, .25, 0x111114, -1.3 + 4.5 * .254, .13, 2.1, rel);
 });
 pin(rel, 'rJD', -6.6, .1, .5, 'JD-VCC'); pin(rel, 'rVCC2', -6.6, .1, .9, 'VCC');
 const jumper = box(.34, .22, .7, 0x16181c, -6.6, .3, .7, rel);
-const jdNote = tag('pull the black jumper off', -6.6, 2.3, .7, rel);
-tag('8-channel relay board (only relay 1 is used here)', 0, 2.0, 0.3, rel);
+const jdNote = tag('pull this little black cap off', -6.6, 2.3, .7, rel);
+tag('Relay board (the switch for the light)', 0, 2.0, 0.3, rel);
 
 // ---- two small junction blocks: one wire in, three out (a Wago lever connector or breadboard rail)
 function junction(id, x, z, color, label) {
   box(2.6, 1.2, 1.5, 0xdedede, x, .6, z); box(2.4, .15, 1.3, color, x, 1.25, z, scene, color === 0x2b2b2b ? {} : { emissive: color, emissiveIntensity: .25 });
   T[id] = () => new THREE.Vector3(x, 1.4, z); tag(label, x, 4.4, z);
 }
-junction('jRed', -7.4, 11.4, 0xe0362c, '5V junction'); junction('jBlk', -7.4, 14.2, 0x2b2b2b, 'GND junction');
+junction('jRed', -7.4, 11.4, 0xe0362c, 'RED joiner (power +)'); junction('jBlk', -7.4, 14.2, 0x2b2b2b, 'BLACK joiner (power −)');
 
 // ---- the test load: resistor + 5V LED
 box(9, .3, 3.2, 0xeceef0, 13, .15, -7);
-tag('Test load: resistor + LED (5V, no mains)', 13, 4.8, -9.5);
+tag('Little light (LED) + resistor', 13, 4.8, -9.5);
 const resBody = cyl(.38, 2.2, 0xd7b98e, 10, 1.0, -7); resBody.rotation.z = Math.PI / 2;
 cyl(.07, 3.2, 0x999999, 10, 1.0, -7).rotation.z = Math.PI / 2;
 for (const [id, x] of [['resA', 8.6], ['resB', 11.4]]) { T[id] = () => new THREE.Vector3(x, 1.0, -7); }
@@ -218,33 +221,33 @@ box(.1, 1.0, .1, 0x999999, 15.6, .5, -7, scene, { metalness: .8 }); box(.1, .8, 
 T.ledA = () => new THREE.Vector3(15.6, .9, -7); T.ledC = () => new THREE.Vector3(16.4, .8, -7);
 const halo = new THREE.Mesh(new THREE.CircleGeometry(4, 32), new THREE.MeshBasicMaterial({ color: 0xff3b2a, transparent: true, opacity: 0, depthWrite: false }));
 halo.rotation.x = -Math.PI / 2; halo.position.set(16, .05, -7); scene.add(halo);
-pinTags.resA = tag('resistor 220 Ω', 10, 2.2, -5.6, scene, true); pinTags.ledA = tag('LED long leg (+)', 14.4, 3.2, -8.6, scene, true); pinTags.ledC = tag('LED short leg (−)', 18.6, 2.4, -6.2, scene, true);
+pinTags.resA = tag('resistor', 10, 2.2, -5.6, scene, true); pinTags.ledA = tag('LED long leg', 14.4, 3.2, -8.6, scene, true); pinTags.ledC = tag('LED short leg', 18.6, 2.4, -6.2, scene, true);
 pinTags.resB = tag('', 11.4, 1.4, -7, scene, true); pinTags.resB.visible = false;
 
 // ---- wires
 const RED = 0xe0362c, BLK = 0x2b2b2b, ORG = 0xff9800, BLU = 0x2196f3, YEL = 0xf5b700;
 const WIRES = [
-  ['red0',  'cutRed',   'jRed',    RED, 2.0, 'Cable red → the 5V junction (one wire in)'],
-  ['blk0',  'cutBlack', 'jBlk',    BLK, 2.0, 'Cable black → the GND junction (one wire in)'],
-  ['red1',  'jRed',     'esp5V',   RED, 3.0, '5V junction → ESP32 5V pin (marked 5V at the bottom of the left side)'],
-  ['blk1',  'jBlk',     'espGND',  BLK, 3.0, 'GND junction → ESP32 GND (left side, next to pin 13)'],
-  ['red2',  'jRed',     'rJD',     RED, 6.5, '5V junction → relay JD-VCC (this powers the relay coils)'],
-  ['blk2',  'jBlk',     'rGND',    BLK, 5.0, 'GND junction → relay GND (the first pin of the long header)'],
-  ['org',   'esp3V3',   'rVCC',    ORG, 9.0, 'ESP32 3V3 → relay VCC (the last pin of the long header)'],
-  ['blu',   'esp26',    'rIN1',    BLU, 6.0, 'ESP32 GPIO 26 → relay IN1 (the control signal)'],
-  ['red3',  'jRed',     'rCOM',    RED, 10.0, '5V junction → relay COM (the middle screw of relay 1). Test only: in the house this takes the live wire.'],
-  ['yel1',  'rNO',      'resA',    YEL, 5.0, 'Relay NO (outer screw) → resistor'],
-  ['yel2',  'resB',     'ledA',    YEL, 2.5, 'Resistor → LED long leg (+)'],
-  ['gnd2',  'ledC',     'jBlk',    BLK, 9.0, 'LED short leg (−) → GND junction'],
+  ['red0',  'cutRed',   'jRed',    RED, 2.0, 'Red wire from the cable → the red joiner'],
+  ['blk0',  'cutBlack', 'jBlk',    BLK, 2.0, 'Black wire from the cable → the black joiner'],
+  ['red1',  'jRed',     'esp5V',   RED, 3.0, 'Red joiner → the ESP32 pin marked 5V (power)'],
+  ['blk1',  'jBlk',     'espGND',  BLK, 3.0, 'Black joiner → an ESP32 pin marked GND (ground)'],
+  ['red2',  'jRed',     'rJD',     RED, 6.5, 'Red joiner → relay board pin JD-VCC (power for the clicking part)'],
+  ['blk2',  'jBlk',     'rGND',    BLK, 5.0, 'Black joiner → relay board pin GND (first pin of the long row)'],
+  ['org',   'esp3V3',   'rVCC',    ORG, 9.0, 'ESP32 pin 3V3 → relay board pin VCC (last pin of the long row)'],
+  ['blu',   'esp26',    'rIN1',    BLU, 6.0, 'ESP32 pin G26 → relay board pin IN1 (this is the "switch on/off" signal)'],
+  ['red3',  'jRed',     'rCOM',    RED, 10.0, 'Red joiner → middle screw (COM) of relay 1. Only for this test.'],
+  ['yel1',  'rNO',      'resA',    YEL, 5.0, 'Side screw (NO) of relay 1 → resistor'],
+  ['yel2',  'resB',     'ledA',    YEL, 2.5, 'Resistor → LED long leg'],
+  ['gnd2',  'ledC',     'jBlk',    BLK, 9.0, 'LED short leg → black joiner'],
 ];
 const STEPS = [
-  { t: 'Check the cut cable', wires: [], body: 'Plug the charger into a wall socket at home. With a multimeter on DC volts, touch the red and black wires. You should read about 5V. Green and white are unused, so tape them. Unplug before wiring.' },
-  { t: 'Split red and black into junctions', wires: ['red0', 'blk0'], body: 'The cable has ONE red and ONE black, but 5V is needed in 3 places (ESP32, relay coils, relay COM) and GND in 3 places (ESP32, relay, LED). So put the red into a small junction: one wire in, three short wires out. Do the same for black. A Wago lever connector or the + and − rails of a mini breadboard do this job. Don\'t twist more than two wires together.' },
-  { t: 'Power the ESP32', wires: ['red1', 'blk1'], body: 'One red from the 5V junction goes to the ESP32 pin marked 5V, and one black from the GND junction goes to GND. Check these pins on your board, because the pin order differs a little between makers.' },
-  { t: 'Power the relay coils', wires: ['red2', 'blk2'], body: 'Pull the black jumper off the JD-VCC pins first. Then a red goes to JD-VCC and a black goes to the relay GND pin. This feeds the relays from the charger, not from the ESP32.' },
-  { t: 'Signals from the ESP32', wires: ['org', 'blu'], body: 'ESP32 3V3 goes to relay VCC, so the 3.3V signal switches the relay cleanly. GPIO 26 goes to IN1.' },
-  { t: 'Put the LED on relay 1', wires: ['red3', 'yel1', 'yel2', 'gnd2'], body: 'The third red feeds relay COM. Relay NO goes through a 220 Ω resistor to the LED long leg, and the short leg goes to the GND junction. The printed order of NO/COM/NC differs between boards, so read the labels on yours. COM is always the middle one.' },
-  { t: 'Power on and test', wires: [], body: 'Plug the charger in. Flash the ESP32 over USB with the charger unplugged. Then tap a lamp in the app: the relay clicks and the LED lights. Press "Try it" above to see what it should look like.' },
+  { t: 'Cut the cable and check it', wires: [], body: 'Take a spare USB cable and cut off the end that goes into a phone. Plug the other end into the charger and the charger into the wall. Touch a multimeter to the red and black wires: it should show about 5. Wrap tape over the green and white wires. Then unplug the charger.' },
+  { t: 'Make a red joiner and a black joiner', wires: ['red0', 'blk0'], body: 'The cable only has 1 red and 1 black, but red must reach 3 places and black must reach 3 places. So make a joiner: 1 wire goes in, 3 short wires come out. Do it once for red and once for black. A Wago connector or the long strips on a small breadboard works as a joiner.' },
+  { t: 'Power the ESP32 (the brain)', wires: ['red1', 'blk1'], body: 'Red joiner → the pin marked 5V. Black joiner → a pin marked GND. Read the little words printed on your board to find them.' },
+  { t: 'Power the relay board', wires: ['red2', 'blk2'], body: 'First pull the little black cap off the two JD-VCC pins. Then red joiner → JD-VCC, and black joiner → GND on the relay board.' },
+  { t: 'Connect the brain to the relay', wires: ['org', 'blu'], body: 'Orange: ESP32 3V3 → relay VCC. Blue: ESP32 G26 → relay IN1. The blue wire is what tells the relay "switch on" or "switch off".' },
+  { t: 'Add the little light (LED)', wires: ['red3', 'yel1', 'yel2', 'gnd2'], body: 'Red joiner → the middle screw (COM) of relay 1. Then side screw (NO) → resistor → LED long leg. LED short leg → black joiner. If the screws on your board are labelled differently, COM is always the middle one.' },
+  { t: 'Switch it on', wires: [], body: 'Plug in the charger. Tap the lamp in the app: the relay clicks and the little light turns on. Press "Try it" at the top to see what it should look like. (Unplug the charger before you plug a USB cable into the ESP32 to flash it.)' },
 ];
 const wireObjs = new Map(), pickables = [];
 function pathFor(w) {
@@ -263,8 +266,8 @@ for (const w of WIRES) {
 // ---- UI
 const hex = c => '#' + c.toString(16).padStart(6, '0');
 let step = 0, picked = null, relayOn = false;
-const nice = id => ({ cutRed: 'Cable red', cutBlack: 'Cable black', esp5V: 'ESP32 5V', espGND: 'ESP32 GND', espGND2: 'ESP32 GND (top right)', esp3V3: 'ESP32 3V3', esp26: 'ESP32 GPIO 26',
-  jRed: '5V junction', jBlk: 'GND junction', rJD: 'Relay JD-VCC', rGND: 'Relay GND', rVCC: 'Relay VCC', rIN1: 'Relay IN1', rCOM: 'Relay COM', rNO: 'Relay NO', resA: 'Resistor', resB: 'Resistor', ledA: 'LED long leg (+)', ledC: 'LED short leg (−)' })[id] || id;
+const nice = id => ({ cutRed: 'Cable red', cutBlack: 'Cable black', esp5V: 'ESP32 5V', espGND: 'ESP32 GND', espGND2: 'ESP32 GND', esp3V3: 'ESP32 3V3', esp26: 'ESP32 G26',
+  jRed: 'Red joiner', jBlk: 'Black joiner', rJD: 'Relay JD-VCC', rGND: 'Relay GND', rVCC: 'Relay VCC', rIN1: 'Relay IN1', rCOM: 'Relay COM', rNO: 'Relay NO', resA: 'Resistor', resB: 'Resistor', ledA: 'LED long leg', ledC: 'LED short leg' })[id] || id;
 const stepsEl = document.getElementById('steps');
 STEPS.forEach((s, i) => {
   const el = document.createElement('div'); el.className = 'step';
@@ -301,11 +304,11 @@ function showWire(id) {
   const w = WIRES.find(x => x[0] === id); picked = id;
   info.innerHTML = `<div class="ft"></div>`;
   info.querySelector('.ft').innerHTML = `<i class="sw" style="display:inline-block;background:${w[3] === BLK ? '#555' : hex(w[3])};margin-right:8px"></i>${nice(w[1])} → ${nice(w[2])}<small></small>`;
-  info.querySelector('small').textContent = w[5] + ' · low voltage (5V)'; info.classList.add('show'); refresh();
+  info.querySelector('small').textContent = w[5] + ' · safe low voltage (5V)'; info.classList.add('show'); refresh();
 }
 function hideInfo() { info.classList.remove('show'); }
 const tryBtn = document.getElementById('try');
-tryBtn.onclick = () => { relayOn = !relayOn; tryBtn.classList.toggle('on', relayOn); tryBtn.setAttribute('aria-pressed', relayOn); tryBtn.textContent = relayOn ? 'Relay on (LED lit)' : 'Try it: relay on'; };
+tryBtn.onclick = () => { relayOn = !relayOn; tryBtn.classList.toggle('on', relayOn); tryBtn.setAttribute('aria-pressed', relayOn); tryBtn.textContent = relayOn ? 'Switched ON: light is lit' : 'Try it: switch ON'; };
 
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down;
 renderer.domElement.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
@@ -318,7 +321,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 });
 function resize() {
   const w = wrap.clientWidth, h = wrap.clientHeight; renderer.setSize(w, h); labels.setSize(w, h); camera.aspect = w / h;
-  camera.position.copy(controls.target).add(new THREE.Vector3(5, 34, 31).setLength(camera.aspect < 1 ? 135 : 96)); camera.updateProjectionMatrix();
+  camera.position.copy(controls.target).add(new THREE.Vector3(5, 34, 31).setLength(camera.aspect < 1 ? 150 : 112)); camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
 const clock = new THREE.Clock(); let lvl = 0;
