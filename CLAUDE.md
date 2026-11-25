@@ -16,7 +16,7 @@ Control the house from a phone with his own app: lights, fans, washroom lights, 
 - Optional, later: IR beam people counter at room doors (two beams about 10 to 15 cm apart, direction from which breaks first) to switch lights and fans. IR only. No radar. Safeguards: nightly auto reset to zero, app reset button, manual override.
 
 ## Hardware he already owns
-5 x 4-channel 5V relay boards (rated 250VAC 10A per channel). Check whether they are opto-isolated and whether they have a JD-VCC jumper.
+Nothing yet (corrected 2026-11-25: the earlier note about 5 relay boards was wrong). Per switchboard buy one 8-channel relay board, not two 4-channel ones.
 
 ## Parts still to buy
 ESP32 38-pin dev boards (2, one spare), ESP32-C3 boards for plugs and sensors, 5V power supplies sized to the relay count (about 3A for 20 relays on at once), HLK-PM01 isolated modules for the plugs, 16A relays, fuses, plastic enclosures, terminals. Earlier cost estimates assumed relays in the DB board and are now out of date. Recost once the switchboard count is known.
