@@ -86,7 +86,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 // ---- parts: the 3D models copy the look of these Digilog products; each card links to the product page
 const PARTS = [
   { name: 'ESP32 38-pin', rs: 'Rs 1,200', url: 'https://digilog.pk/products/38-nodemcu-esp32s-microcontroller-wifi-bluetooth-wroom-32-development-board' },
-  { name: '4-channel relay board', rs: 'Rs 375', url: 'https://digilog.pk/products/arduino-4-channel-relay-module-board' },
+  { name: '8-channel relay board', rs: 'Rs 750', url: 'https://digilog.pk/products/5v-8-channel-relay-module-relay-board-relay-arduino-relay-module' },
   { name: '5V 2A adapter', rs: 'Rs 260', url: 'https://digilog.pk/products/power-supply-acdc-adapter-refurbished' },
 ];
 document.getElementById('parts').innerHTML = PARTS.map(p => `<a class="part" href="${p.url}" target="_blank" rel="noopener"><span><b>${p.name}</b><br>${p.rs}<br>See it on Digilog ↗</span></a>`).join('');
@@ -102,7 +102,7 @@ const labels = new CSS2DRenderer(); labels.domElement.className = 'labels'; wrap
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0xdfe3e8);
 const camera = new THREE.PerspectiveCamera(36, 1, 0.5, 400);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; controls.target.set(-3, 0, 4); controls.maxPolarAngle = Math.PI * 0.49;
+controls.enableDamping = true; controls.target.set(9, 0, 4); controls.maxPolarAngle = Math.PI * 0.49;
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f98, 1.35));
 const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(-20, 40, 30); key.castShadow = false; scene.add(key);
 
@@ -113,8 +113,8 @@ function tag(text, x, y, z, parent = scene, small = false) {
   const el = document.createElement('div'); el.className = 'tag' + (small ? ' small' : ''); el.textContent = text;
   const o = new CSS2DObject(el); o.position.set(x, y, z); parent.add(o); return o;
 }
-const table = new THREE.Mesh(new THREE.PlaneGeometry(120, 70), M(0xc9ced6, { roughness: 1 }));
-table.rotation.x = -Math.PI / 2; table.position.set(2, -0.01, 4); scene.add(table);
+const table = new THREE.Mesh(new THREE.PlaneGeometry(170, 90), M(0xc9ced6, { roughness: 1 }));
+table.rotation.x = -Math.PI / 2; table.position.set(9, -0.01, 4); scene.add(table);
 
 const T = {}, pinTags = {};
 const S = 2.5;
@@ -128,7 +128,7 @@ function pin(g, id, x, y, z, label, color = 0xd4af37) {
 // ---- wall socket + USB charger + cut cable
 box(7, 1.5, 7, 0xe6e6e2, -24.5, .75, 10);
 box(1.6, .1, .6, 0x333333, -22.3, 1.52, 9.2); box(1.6, .1, .6, 0x333333, -22.3, 1.52, 10.8);
-tag('Wall socket (at home)', -24.5, 1.2, 14.2);
+tag('Wall socket (at home)', -24.5, 1.2, 15.2);
 box(5, 3.4, 5.6, 0x16181c, -19.2, 2.1, 10);
 box(1.4, .3, .2, 0x9aa0a6, -21.9, 1.9, 9.3, scene, { metalness: .8 }); box(1.4, .3, .2, 0x9aa0a6, -21.9, 1.9, 10.7, scene, { metalness: .8 });
 tag('Phone charger  5V 2A', -19.2, 5.4, 10);
@@ -144,7 +144,7 @@ for (const [n, c, z] of stubs) {
   if (n === 'green' || n === 'white') box(.5, .3, .35, 0xf2d13a, -10.7, .5, z);   // tape over the unused data wires
   else T['cut' + n[0].toUpperCase() + n.slice(1)] = () => e.clone();
 }
-tag('Cut here (the phone end of a spare cable)', -12.3, 2.4, 12.3);
+tag('Cut here (the phone end of a spare cable)', -13.5, 1.0, 16.2);
 tag('red = +5V', -10.2, 1.3, 11.8, scene, true); tag('black = GND', -10.2, 1.3, 12.6, scene, true);
 tag('green + white: tape up, unused', -10.2, 1.3, 14.4, scene, true);
 
@@ -171,31 +171,39 @@ R.forEach((l, i) => {
 tag('ESP32', 0, 1.4, -.3, esp);
 tag('USB: leave empty while powered here', 0, 1.2, 3.4, esp, true).visible = false;
 
-// ---- 4-channel relay board (blue PCB, black relays, green terminals)
-const rel = part(13, 0, 8);
-box(7.3, .15, 5.0, 0x1c5fb5, 0, .075, 0, rel);
-const rx = k => -2.55 + k * 1.8;
-for (let k = 0; k < 4; k++) {
-  box(1.55, 1.5, 1.9, 0x15171c, rx(k), .9, -.9, rel);
-  box(1.5, 1.0, .7, 0x2e9e43, rx(k), .65, -2.2, rel);
-  for (const dx of [-.5, 0, .5]) cyl(.15, .05, 0xc9a24a, rx(k) + dx, 1.17, -2.2, rel, { metalness: .8 }, 10);
-  box(.8, .2, .5, 0x0b0b0d, rx(k), .2, .8, rel);
-  box(.2, .1, .2, k === 0 ? 0x6b2a2a : 0x2a4a2a, rx(k), .17, 1.75, rel);
+// ---- 8-channel relay board (blue PCB, blue relays, blue 3-screw terminals, like the Digilog photo)
+const rel = part(27, 0, 8);
+const rx = k => -5.95 + k * 1.7;
+box(14.2, .15, 5.2, 0x1c5fb5, 0, .075, 0, rel);
+for (let k = 0; k < 8; k++) {
+  box(1.5, 1.5, 1.9, 0x2563c9, rx(k), .9, -.9, rel);
+  box(1.5, 1.0, .7, 0x3aa0e8, rx(k), .65, -2.3, rel);
+  for (const dx of [-.5, 0, .5]) cyl(.15, .05, 0xc9a24a, rx(k) + dx, 1.17, -2.3, rel, { metalness: .8 }, 10);
+  box(.5, .2, .4, 0x0b0b0d, rx(k), .2, .8, rel);
+  box(.2, .1, .2, 0x2a4a2a, rx(k), .17, 1.75, rel);
 }
-const relayLed = box(.2, .1, .2, 0x6b2a2a, rx(0), .17, 1.75, rel);
+const relayLed = box(.22, .12, .22, 0x6b2a2a, rx(0), .2, 1.75, rel);
 for (const [id, dx, lab] of [['rNO', -.5, 'NO'], ['rCOM', 0, 'COM'], ['rNC', .5, 'NC']]) {
-  T[id] = () => rel.localToWorld(new THREE.Vector3(rx(0) + dx, 1.25, -2.2));
-  pinTags[id] = tag(lab, rx(0) + dx, 1.75, -2.2, rel, true);
+  T[id] = () => rel.localToWorld(new THREE.Vector3(rx(0) + dx, 1.25, -2.3));
+  pinTags[id] = tag(lab, rx(0) + dx, 1.75, -2.3, rel, true);
 }
-box(1.55, .25, .25, 0x111114, .5 + .635, .13, 2.0, rel);
-['GND', 'IN1', 'IN2', 'IN3', 'IN4', 'VCC'].forEach((l, i) => {
-  if (['GND', 'IN1', 'VCC'].includes(l)) pin(rel, 'r' + l, .5 + i * .254, .1, 2.0, l);
-  else box(.09, .3, .09, 0xb9a24a, .5 + i * .254, .35, 2.0, rel);
+box(2.7, .25, .25, 0x111114, -1.3 + 4.5 * .254, .13, 2.1, rel);
+['GND', 'IN1', 'IN2', 'IN3', 'IN4', 'IN5', 'IN6', 'IN7', 'IN8', 'VCC'].forEach((l, i) => {
+  const x = -1.3 + i * .254;
+  if (['GND', 'IN1', 'VCC'].includes(l)) pin(rel, 'r' + l, x, .1, 2.1, l);
+  else box(.09, .3, .09, 0xb9a24a, x, .35, 2.1, rel);
 });
-pin(rel, 'rJD', 3.3, .1, .4, 'JD-VCC'); pin(rel, 'rVCC2', 3.3, .1, .8, 'VCC');
-const jumper = box(.34, .22, .7, 0x16181c, 3.3, .3, .6, rel);
-const jdNote = tag('pull the black jumper off', 3.3, 2.2, .6, rel);
-tag('4-channel relay board (opto-isolated)', 0, 2.0, 0.2, rel);
+pin(rel, 'rJD', -6.6, .1, .5, 'JD-VCC'); pin(rel, 'rVCC2', -6.6, .1, .9, 'VCC');
+const jumper = box(.34, .22, .7, 0x16181c, -6.6, .3, .7, rel);
+const jdNote = tag('pull the black jumper off', -6.6, 2.3, .7, rel);
+tag('8-channel relay board (only relay 1 is used here)', 0, 2.0, 0.3, rel);
+
+// ---- two small junction blocks: one wire in, three out (a Wago lever connector or breadboard rail)
+function junction(id, x, z, color, label) {
+  box(2.6, 1.2, 1.5, 0xdedede, x, .6, z); box(2.4, .15, 1.3, color, x, 1.25, z, scene, color === 0x2b2b2b ? {} : { emissive: color, emissiveIntensity: .25 });
+  T[id] = () => new THREE.Vector3(x, 1.4, z); tag(label, x, 4.4, z);
+}
+junction('jRed', -7.4, 11.4, 0xe0362c, '5V junction'); junction('jBlk', -7.4, 14.2, 0x2b2b2b, 'GND junction');
 
 // ---- the test load: resistor + 5V LED
 box(9, .3, 3.2, 0xeceef0, 13, .15, -7);
@@ -216,23 +224,26 @@ pinTags.resB = tag('', 11.4, 1.4, -7, scene, true); pinTags.resB.visible = false
 // ---- wires
 const RED = 0xe0362c, BLK = 0x2b2b2b, ORG = 0xff9800, BLU = 0x2196f3, YEL = 0xf5b700;
 const WIRES = [
-  ['red1',  'cutRed',   'esp5V',   RED, 3.5, 'Cable red → ESP32 5V pin (marked 5V at the bottom of the left side)'],
-  ['blk1',  'cutBlack', 'espGND',  BLK, 3.0, 'Cable black → ESP32 GND (left side, next to pin 13)'],
-  ['red2',  'cutRed',   'rJD',     RED, 6.5, 'Cable red → relay JD-VCC (this powers the relay coils)'],
-  ['blk2',  'espGND',   'rGND',    BLK, 4.5, 'GND → relay GND (the first pin of the 6-pin header)'],
-  ['org',   'esp3V3',   'rVCC',    ORG, 8.5, 'ESP32 3V3 → relay VCC (the last pin of the 6-pin header)'],
-  ['blu',   'esp26',   'rIN1',    BLU, 5.5, 'ESP32 GPIO 26 → relay IN1 (the control signal)'],
-  ['red3',  'cutRed',   'rCOM',    RED, 9.5, 'Cable red → relay COM (the middle screw of relay 1)'],
-  ['yel1',  'rNO',      'resA',    YEL, 5.5, 'Relay NO (outer screw) → resistor'],
+  ['red0',  'cutRed',   'jRed',    RED, 2.0, 'Cable red → the 5V junction (one wire in)'],
+  ['blk0',  'cutBlack', 'jBlk',    BLK, 2.0, 'Cable black → the GND junction (one wire in)'],
+  ['red1',  'jRed',     'esp5V',   RED, 3.0, '5V junction → ESP32 5V pin (marked 5V at the bottom of the left side)'],
+  ['blk1',  'jBlk',     'espGND',  BLK, 3.0, 'GND junction → ESP32 GND (left side, next to pin 13)'],
+  ['red2',  'jRed',     'rJD',     RED, 6.5, '5V junction → relay JD-VCC (this powers the relay coils)'],
+  ['blk2',  'jBlk',     'rGND',    BLK, 5.0, 'GND junction → relay GND (the first pin of the long header)'],
+  ['org',   'esp3V3',   'rVCC',    ORG, 9.0, 'ESP32 3V3 → relay VCC (the last pin of the long header)'],
+  ['blu',   'esp26',    'rIN1',    BLU, 6.0, 'ESP32 GPIO 26 → relay IN1 (the control signal)'],
+  ['red3',  'jRed',     'rCOM',    RED, 10.0, '5V junction → relay COM (the middle screw of relay 1). Test only: in the house this takes the live wire.'],
+  ['yel1',  'rNO',      'resA',    YEL, 5.0, 'Relay NO (outer screw) → resistor'],
   ['yel2',  'resB',     'ledA',    YEL, 2.5, 'Resistor → LED long leg (+)'],
-  ['gnd2',  'ledC',     'espGND2', BLK, 6.0, 'LED short leg (−) → any GND, here the ESP32 GND at the top right'],
+  ['gnd2',  'ledC',     'jBlk',    BLK, 9.0, 'LED short leg (−) → GND junction'],
 ];
 const STEPS = [
   { t: 'Check the cut cable', wires: [], body: 'Plug the charger into a wall socket at home. With a multimeter on DC volts, touch the red and black wires. You should read about 5V. Green and white are unused, so tape them. Unplug before wiring.' },
-  { t: 'Power the ESP32', wires: ['red1', 'blk1'], body: 'Red goes to the ESP32 pin marked 5V and black goes to GND. Check which pins these are on your board, because the pin order differs a little between makers.' },
-  { t: 'Power the relay coils', wires: ['red2', 'blk2'], body: 'Pull the black jumper off the JD-VCC pins first. Then red goes to JD-VCC and GND goes to the relay GND pin. This feeds the relays from the charger, not from the ESP32.' },
+  { t: 'Split red and black into junctions', wires: ['red0', 'blk0'], body: 'The cable has ONE red and ONE black, but 5V is needed in 3 places (ESP32, relay coils, relay COM) and GND in 3 places (ESP32, relay, LED). So put the red into a small junction: one wire in, three short wires out. Do the same for black. A Wago lever connector or the + and − rails of a mini breadboard do this job. Don\'t twist more than two wires together.' },
+  { t: 'Power the ESP32', wires: ['red1', 'blk1'], body: 'One red from the 5V junction goes to the ESP32 pin marked 5V, and one black from the GND junction goes to GND. Check these pins on your board, because the pin order differs a little between makers.' },
+  { t: 'Power the relay coils', wires: ['red2', 'blk2'], body: 'Pull the black jumper off the JD-VCC pins first. Then a red goes to JD-VCC and a black goes to the relay GND pin. This feeds the relays from the charger, not from the ESP32.' },
   { t: 'Signals from the ESP32', wires: ['org', 'blu'], body: 'ESP32 3V3 goes to relay VCC, so the 3.3V signal switches the relay cleanly. GPIO 26 goes to IN1.' },
-  { t: 'Put the LED on relay 1', wires: ['red3', 'yel1', 'yel2', 'gnd2'], body: 'Red feeds relay COM. Relay NO goes through a 220 Ω resistor to the LED long leg, and the short leg goes to GND. The printed order of NO/COM/NC differs between boards, so read the labels on yours. COM is always the middle one.' },
+  { t: 'Put the LED on relay 1', wires: ['red3', 'yel1', 'yel2', 'gnd2'], body: 'The third red feeds relay COM. Relay NO goes through a 220 Ω resistor to the LED long leg, and the short leg goes to the GND junction. The printed order of NO/COM/NC differs between boards, so read the labels on yours. COM is always the middle one.' },
   { t: 'Power on and test', wires: [], body: 'Plug the charger in. Flash the ESP32 over USB with the charger unplugged. Then tap a lamp in the app: the relay clicks and the LED lights. Press "Try it" above to see what it should look like.' },
 ];
 const wireObjs = new Map(), pickables = [];
@@ -253,7 +264,7 @@ for (const w of WIRES) {
 const hex = c => '#' + c.toString(16).padStart(6, '0');
 let step = 0, picked = null, relayOn = false;
 const nice = id => ({ cutRed: 'Cable red', cutBlack: 'Cable black', esp5V: 'ESP32 5V', espGND: 'ESP32 GND', espGND2: 'ESP32 GND (top right)', esp3V3: 'ESP32 3V3', esp26: 'ESP32 GPIO 26',
-  rJD: 'Relay JD-VCC', rGND: 'Relay GND', rVCC: 'Relay VCC', rIN1: 'Relay IN1', rCOM: 'Relay COM', rNO: 'Relay NO', resA: 'Resistor', resB: 'Resistor', ledA: 'LED long leg (+)', ledC: 'LED short leg (−)' })[id] || id;
+  jRed: '5V junction', jBlk: 'GND junction', rJD: 'Relay JD-VCC', rGND: 'Relay GND', rVCC: 'Relay VCC', rIN1: 'Relay IN1', rCOM: 'Relay COM', rNO: 'Relay NO', resA: 'Resistor', resB: 'Resistor', ledA: 'LED long leg (+)', ledC: 'LED short leg (−)' })[id] || id;
 const stepsEl = document.getElementById('steps');
 STEPS.forEach((s, i) => {
   const el = document.createElement('div'); el.className = 'step';
@@ -277,7 +288,7 @@ function refresh() {
   const used = new Set(WIRES.filter(w => focus.includes(w[0])).flatMap(w => [w[1], w[2]]));
   for (const [id, o] of Object.entries(pinTags)) o.visible = used.has(id) && id !== 'resB';
   jdNote.visible = used.has('rJD');
-  jumper.position.set(3.3, step >= 2 ? 1.6 : .3, step >= 2 ? 1.5 : .6);
+  jumper.position.set(step >= 3 ? -5.4 : -6.6, step >= 3 ? 1.6 : .3, step >= 3 ? 1.6 : .7);
   document.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('active', i === step));
   document.getElementById('prev').disabled = step === 0;
   document.getElementById('next').textContent = step === STEPS.length - 1 ? 'Start again' : 'Next step';
@@ -307,7 +318,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 });
 function resize() {
   const w = wrap.clientWidth, h = wrap.clientHeight; renderer.setSize(w, h); labels.setSize(w, h); camera.aspect = w / h;
-  camera.position.copy(controls.target).add(new THREE.Vector3(5, 34, 31).setLength(camera.aspect < 1 ? 100 : 74)); camera.updateProjectionMatrix();
+  camera.position.copy(controls.target).add(new THREE.Vector3(5, 34, 31).setLength(camera.aspect < 1 ? 135 : 96)); camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
 const clock = new THREE.Clock(); let lvl = 0;
